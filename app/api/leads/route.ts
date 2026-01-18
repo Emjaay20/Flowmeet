@@ -67,10 +67,18 @@ export async function POST(req: Request) {
         const hasCompany = company?.length > 1
         const qualified = (score >= 0.6) || (!!(isQualifiedRole && hasCompany))
 
-        // 4. Meeting Link
-        const bookingUrl = qualified
-            ? 'https://calendly.com/yourname/demo-call' // TODO: Make dynamic per workspace
-            : null
+        // 4. Meeting Link Resolution
+        let bookingUrl = null;
+        if (qualified && workspace_id) {
+            const { data: workspaceData } = await supabase
+                .from("workspaces")
+                .select("booking_url")
+                .eq("id", workspace_id)
+                .single();
+
+            // Use Custom Link or Fallback
+            bookingUrl = workspaceData?.booking_url || 'https://calendly.com/yourname/demo-call';
+        }
 
         // 5. Send Emails (if qualified)
         if (qualified && bookingUrl) {
