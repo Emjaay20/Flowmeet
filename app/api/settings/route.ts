@@ -12,7 +12,7 @@ export async function POST(req: Request) {
         }
 
         // 2. Parse Body
-        const { bookingUrl } = await req.json()
+        const { bookingUrl, clayEnabled, clayApiKey } = await req.json()
 
         // 3. Get User's Workspace
         const { data: workspaceUser, error: wsError } = await supabase
@@ -28,7 +28,11 @@ export async function POST(req: Request) {
         // 4. Update Workspace Settings
         const { error: updateError } = await supabase
             .from("workspaces")
-            .update({ booking_url: bookingUrl })
+            .update({
+                booking_url: bookingUrl,
+                clay_enabled: clayEnabled,
+                clay_api_key: clayApiKey
+            })
             .eq("id", workspaceUser.workspace_id)
 
         if (updateError) {

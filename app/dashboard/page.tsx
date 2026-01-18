@@ -23,7 +23,14 @@ export default async function AdminPage({
 
     if (!workspaceUser) {
         // Handle case where user has no workspace (e.g. new signup error)
-        return <AdminClient leads={[]} metrics={{ totalLeads: 0, qualifiedLeads: 0, conversionRate: '0' }} apiKey={null} initialBookingUrl="" />
+        return <AdminClient
+            leads={[]}
+            metrics={{ totalLeads: 0, qualifiedLeads: 0, conversionRate: '0' }}
+            apiKey={null}
+            initialBookingUrl=""
+            initialClayEnabled={false}
+            initialClayApiKey={null}
+        />
     }
 
     const { workspace_id } = workspaceUser;
@@ -50,10 +57,12 @@ export default async function AdminPage({
     // Fetch Workspace Settings
     const { data: workspaceData } = await supabase
         .from("workspaces")
-        .select("booking_url")
+        .select("booking_url, clay_enabled, clay_api_key")
         .eq("id", workspace_id)
         .single();
     bookingUrl = workspaceData?.booking_url || "";
+    const clayEnabled = workspaceData?.clay_enabled || false;
+    const clayApiKey = workspaceData?.clay_api_key || null;
 
     const allLeads = leads || []
     const totalLeads = allLeads.length
@@ -68,5 +77,12 @@ export default async function AdminPage({
         conversionRate
     }
 
-    return <AdminClient leads={allLeads} metrics={metrics} apiKey={apiKey} initialBookingUrl={bookingUrl} />
+    return <AdminClient
+        leads={allLeads}
+        metrics={metrics}
+        apiKey={apiKey}
+        initialBookingUrl={bookingUrl}
+        initialClayEnabled={clayEnabled}
+        initialClayApiKey={clayApiKey}
+    />
 }

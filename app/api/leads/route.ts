@@ -59,8 +59,46 @@ export async function POST(req: Request) {
             workspace_id = await getWorkspaceId(userId);
         }
 
-        // 2. AI Scoring
-        const { score, reason } = scoreLeadAI({ role, company, region })
+        // 1.5 Fetch Workspace Settings (for Enrichment)
+        let clayEnabled = false;
+        let clayApiKey = null;
+        if (workspace_id) {
+            const { data: wsSettings } = await supabase
+                .from("workspaces")
+                .select("clay_enabled, clay_api_key")
+                .eq("id", workspace_id)
+                .single();
+            if (wsSettings) {
+                clayEnabled = wsSettings.clay_enabled;
+                clayApiKey = wsSettings.clay_api_key;
+            }
+        }
+
+        // 2. Enrichment (Clay Integration)
+        let enrichedData = {};
+        if (clayEnabled) {
+            if (clayApiKey) {
+                // TODO: Call Real Clay API
+                console.log("Calling Clay API with key:", clayApiKey);
+            } else {
+                // Mock Mode (Simulation)
+                console.log("Simulating Clay Enrichment...");
+                enrichedData = {
+                    revenue: "$50M+",
+                    employees: "500-1000",
+                    linkedin: company ? `https://linkedin.com/company/${company}` : null
+                };
+            }
+        }
+
+        // 3. AI Scoring
+        let { score, reason } = scoreLeadAI({ role, company, region })
+
+        // BOOST Score if Enriched
+        if (clayEnabled && (enrichedData as any).revenue === "$50M+") {
+            score = Math.min(score + 0.3, 0.99); // Boost score
+            reason += ", Enriched: High Revenue ($50M+)";
+        }
 
         // 3. Qualification Logic
         const isQualifiedRole = role?.toLowerCase().match(/manager|head|director|founder/)

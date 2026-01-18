@@ -17,7 +17,9 @@ export default function AdminClient({
     leads,
     metrics,
     apiKey,
-    initialBookingUrl
+    initialBookingUrl,
+    initialClayEnabled,
+    initialClayApiKey
 }: {
     leads: any[];
     metrics: {
@@ -27,11 +29,15 @@ export default function AdminClient({
     };
     apiKey: string | null;
     initialBookingUrl: string;
+    initialClayEnabled: boolean;
+    initialClayApiKey: string | null;
 }) {
     const [filter, setFilter] = useState("All");
     const [copied, setCopied] = useState(false);
     const [activeTab, setActiveTab] = useState("Leads");
     const [bookingUrl, setBookingUrl] = useState(initialBookingUrl);
+    const [clayEnabled, setClayEnabled] = useState(initialClayEnabled);
+    const [clayApiKey, setClayApiKey] = useState(initialClayApiKey || "");
     const [saving, setSaving] = useState(false);
     const router = useRouter();
     const supabase = createClient();
@@ -56,7 +62,11 @@ export default function AdminClient({
             const res = await fetch('/api/settings', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ bookingUrl })
+                body: JSON.stringify({
+                    bookingUrl,
+                    clayEnabled,
+                    clayApiKey
+                })
             });
             if (!res.ok) throw new Error('Failed to save settings');
             alert('Settings saved successfully!');
@@ -277,6 +287,53 @@ export default function AdminClient({
                                 <p className="mt-2 text-xs text-slate-400">
                                     Endpoint: <span className="font-mono">POST /api/leads</span>
                                 </p>
+                            </div>
+                        </div>
+
+                        {/* Integrations Section */}
+                        <div className="bg-white p-6 rounded-xl shadow-sm ring-1 ring-slate-900/5">
+                            <h3 className="text-lg font-medium leading-6 text-slate-900 icon-clay">Integrations</h3>
+                            <div className="mt-6 space-y-6">
+                                <div className="flex items-start">
+                                    <div className="flex h-6 items-center">
+                                        <input
+                                            id="clayEnabled"
+                                            name="clayEnabled"
+                                            type="checkbox"
+                                            checked={clayEnabled}
+                                            onChange={(e) => setClayEnabled(e.target.checked)}
+                                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                                        />
+                                    </div>
+                                    <div className="ml-3 text-sm leading-6">
+                                        <label htmlFor="clayEnabled" className="font-medium text-slate-900">
+                                            Enable Clay Enrichment
+                                        </label>
+                                        <p className="text-slate-500">Automatically enrich lead data (Company Size, Revenue) to improve scoring.</p>
+                                    </div>
+                                </div>
+
+                                {clayEnabled && (
+                                    <div className="ml-7">
+                                        <label htmlFor="clayApiKey" className="block text-sm font-medium leading-6 text-slate-900">
+                                            Clay API Key <span className="text-slate-400 font-normal">(Optional)</span>
+                                        </label>
+                                        <div className="mt-2">
+                                            <input
+                                                type="password"
+                                                name="clayApiKey"
+                                                id="clayApiKey"
+                                                className="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
+                                                placeholder="Enter your Clay API Key (leave empty for Simulation Mode)"
+                                                value={clayApiKey}
+                                                onChange={(e) => setClayApiKey(e.target.value)}
+                                            />
+                                            <p className="mt-2 text-xs text-slate-500">
+                                                If left empty, we will simulate enrichment data for demo purposes.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
