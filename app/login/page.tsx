@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/app/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function LoginPage() {
     const [email, setEmail] = useState('')
@@ -21,7 +22,7 @@ export default function LoginPage() {
         if (error) {
             alert(error.message)
         } else {
-            router.push('/admin')
+            router.push('/dashboard')
         }
     }
 
@@ -82,6 +83,13 @@ export default function LoginPage() {
                         </button>
                     </div>
                 </form>
+
+                <p className="text-center text-sm text-slate-600">
+                    Don't have an account?{' '}
+                    <Link href="/signup" className="font-medium text-blue-600 hover:text-blue-500">
+                        Sign up
+                    </Link>
+                </p>
             </div>
         </div>
     )

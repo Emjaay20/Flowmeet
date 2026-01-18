@@ -19,6 +19,23 @@ export default async function AdminPage({
         .select("*")
         .order('created_at', { ascending: false });
 
+    // Fetch API Key
+    let apiKey = null;
+    const { data: workspaceUser } = await supabase
+        .from("workspace_users")
+        .select("workspace_id")
+        .eq("user_id", session.user.id)
+        .single();
+
+    if (workspaceUser) {
+        const { data: keyData } = await supabase
+            .from("api_keys")
+            .select("key")
+            .eq("workspace_id", workspaceUser.workspace_id)
+            .single();
+        apiKey = keyData?.key || null;
+    }
+
     const allLeads = leads || []
     const totalLeads = allLeads.length
     const qualifiedLeads = allLeads.filter((l) => l.qualified).length
@@ -32,5 +49,5 @@ export default async function AdminPage({
         conversionRate
     }
 
-    return <AdminClient leads={allLeads} metrics={metrics} />
+    return <AdminClient leads={allLeads} metrics={metrics} apiKey={apiKey} />
 }
