@@ -54,7 +54,16 @@ export default function SignupPage() {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12 sm:px-6 lg:px-8 font-sans">
+        <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12 sm:px-6 lg:px-8 font-sans relative">
+            <Link
+                href="/"
+                className="absolute top-4 left-4 md:top-8 md:left-8 flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+            >
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+                Back to home
+            </Link>
             <div className="w-full max-w-sm space-y-8 bg-white p-8 rounded-xl shadow-lg ring-1 ring-slate-900/5">
                 <div>
                     <h2 className="mt-2 text-center text-3xl font-bold tracking-tight text-slate-900">

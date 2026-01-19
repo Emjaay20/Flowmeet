@@ -1,28 +1,12 @@
 import Link from "next/link";
+import Header from "./components/Header";
+import ContactForm from "./components/ContactForm";
 
 export default function LandingPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#ffffff', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       {/* Navigation */}
-      <header style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)', borderBottom: '1px solid #e5e7eb' }}>
-        <nav style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '32px', height: '32px', background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)', borderRadius: '8px' }}></div>
-            <span style={{ fontSize: '20px', fontWeight: 700, color: '#111827' }}>FlowMeet</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
-            <a href="#features" style={{ fontSize: '14px', fontWeight: 500, color: '#4b5563', textDecoration: 'none' }}>Features</a>
-            <a href="#how-it-works" style={{ fontSize: '14px', fontWeight: 500, color: '#4b5563', textDecoration: 'none' }}>How it works</a>
-            <a href="#pricing" style={{ fontSize: '14px', fontWeight: 500, color: '#4b5563', textDecoration: 'none' }}>Pricing</a>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <Link href="/login" style={{ fontSize: '14px', fontWeight: 500, color: '#4b5563', padding: '8px 16px', textDecoration: 'none' }}>Sign in</Link>
-            <Link href="/signup" style={{ fontSize: '14px', fontWeight: 600, color: '#ffffff', padding: '10px 20px', borderRadius: '9999px', background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)', textDecoration: 'none' }}>
-              Start free trial
-            </Link>
-          </div>
-        </nav>
-      </header>
+      <Header />
 
       <main>
         {/* Hero Section */}
@@ -63,7 +47,7 @@ export default function LandingPage() {
                 Start your free trial
               </Link>
               <Link
-                href="/demo"
+                href="#contact"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -129,6 +113,19 @@ export default function LandingPage() {
                 <p style={{ fontSize: '14px', color: '#6b7280', lineHeight: 1.6 }}>Get instant alerts when high-value leads engage so you never miss an opportunity.</p>
               </div>
             </div>
+          </div>
+        </section>
+
+
+        {/* Contact Section */}
+        <section id="contact" style={{ padding: '80px 24px', background: '#f9fafb' }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+              <p style={{ fontSize: '14px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px', color: '#7c3aed' }}>Contact Us</p>
+              <h2 style={{ fontSize: '36px', fontWeight: 700, color: '#111827' }}>Have questions? Get in touch.</h2>
+              <p style={{ color: '#6b7280', marginTop: '16px' }}>Fill out the form below and our team will get back to you shortly.</p>
+            </div>
+            <ContactForm />
           </div>
         </section>
 
