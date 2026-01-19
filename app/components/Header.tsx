@@ -20,6 +20,7 @@ export default function Header() {
                     <a href="#how-it-works" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">How it works</a>
                     <a href="#pricing" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Pricing</a>
                     <a href="#about" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">About</a>
+                    <Link href="/docs" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">API</Link>
                     <a href="#contact" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Contact</a>
                 </div>
 
