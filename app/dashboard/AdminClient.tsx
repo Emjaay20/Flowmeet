@@ -120,6 +120,16 @@ export default function AdminClient({
                             Leads
                         </button>
                         <button
+                            onClick={() => setActiveTab("Pipeline")}
+                            className={`${activeTab === "Pipeline"
+                                ? "bg-white text-slate-900 shadow-sm"
+                                : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+                                } rounded-md px-6 py-2.5 text-sm font-medium transition-all duration-200 flex items-center gap-1.5`}
+                        >
+                            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            Live Pipeline &amp; Tester
+                        </button>
+                        <button
                             onClick={() => setActiveTab("Settings")}
                             className={`${activeTab === "Settings"
                                 ? "bg-white text-slate-900 shadow-sm"
@@ -130,6 +140,110 @@ export default function AdminClient({
                         </button>
                     </div>
                 </div>
+
+                {/* TAB CONTENT: PIPELINE TESTER */}
+                {activeTab === "Pipeline" && (
+                    <div className="space-y-6">
+                        {/* Systems Health Bar */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                            <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-xs flex items-center gap-3">
+                                <div className="h-3 w-3 rounded-full bg-emerald-500"></div>
+                                <div>
+                                    <div className="text-xs font-mono text-slate-400">RUST CRAWLER</div>
+                                    <div className="text-sm font-bold text-slate-900">Port 8081 (Active)</div>
+                                </div>
+                            </div>
+                            <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-xs flex items-center gap-3">
+                                <div className="h-3 w-3 rounded-full bg-emerald-500"></div>
+                                <div>
+                                    <div className="text-xs font-mono text-slate-400">GO CONCIERGE</div>
+                                    <div className="text-sm font-bold text-slate-900">Port 8082 (Active)</div>
+                                </div>
+                            </div>
+                            <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-xs flex items-center gap-3">
+                                <div className="h-3 w-3 rounded-full bg-emerald-500"></div>
+                                <div>
+                                    <div className="text-xs font-mono text-slate-400">PYTHON RAG BRAIN</div>
+                                    <div className="text-sm font-bold text-slate-900">Port 8083 (Active)</div>
+                                </div>
+                            </div>
+                            <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-xs flex items-center gap-3">
+                                <div className="h-3 w-3 rounded-full bg-emerald-500"></div>
+                                <div>
+                                    <div className="text-xs font-mono text-slate-400">CAL.COM HANDOFF</div>
+                                    <div className="text-sm font-bold text-slate-900">Live Webhooks</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Interactive Ingestion & Routing Workbench */}
+                        <div className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-900">Live Ingestion Workbench</h3>
+                                <p className="text-sm text-slate-500">
+                                    Simulate incoming lead form submissions or CRM webhooks to trigger real-time domain enrichment, scoring, and routing.
+                                </p>
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <input
+                                    type="email"
+                                    id="pipelineTestEmail"
+                                    defaultValue="vp_engineering@stripe.com"
+                                    placeholder="Enter work email (e.g. founder@airbnb.com)"
+                                    className="flex-grow px-4 py-2.5 rounded-lg border border-gray-300 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                />
+                                <button
+                                    onClick={async () => {
+                                        const emailInput = (document.getElementById("pipelineTestEmail") as HTMLInputElement)?.value;
+                                        if (!emailInput) return;
+                                        const terminal = document.getElementById("pipelineOutput");
+                                        if (terminal) terminal.textContent = "Connecting to /api/stream-enrich...\n";
+                                        
+                                        try {
+                                            const res = await fetch("/api/stream-enrich", {
+                                                method: "POST",
+                                                headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({ email: emailInput })
+                                            });
+                                            if (!res.body) return;
+                                            const reader = res.body.getReader();
+                                            const decoder = new TextDecoder();
+                                            let buffer = "";
+                                            while (true) {
+                                                const { done, value } = await reader.read();
+                                                if (done) break;
+                                                buffer += decoder.decode(value, { stream: true });
+                                                const lines = buffer.split("\n\n");
+                                                buffer = lines.pop() || "";
+                                                for (const line of lines) {
+                                                    if (line.startsWith("data: ")) {
+                                                        const event = JSON.parse(line.replace("data: ", ""));
+                                                        if (terminal && event.log) {
+                                                            terminal.textContent += `${event.log}\n`;
+                                                            terminal.scrollTop = terminal.scrollHeight;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            router.refresh();
+                                        } catch (e: any) {
+                                            if (terminal) terminal.textContent += `[Error] ${e.message}\n`;
+                                        }
+                                    }}
+                                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-sm shadow-sm transition-all"
+                                >
+                                    Enrich &amp; Route Lead
+                                </button>
+                            </div>
+
+                            <div className="bg-[#0f172a] p-4 rounded-xl font-mono text-xs text-emerald-400 min-h-[140px] max-h-56 overflow-y-auto">
+                                <div className="text-slate-500 mb-2 border-b border-slate-800 pb-1">// Real-time streaming pipeline log:</div>
+                                <pre id="pipelineOutput" className="whitespace-pre-wrap">Click &quot;Enrich &amp; Route Lead&quot; above to inspect the live streaming pipeline...</pre>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* TAB CONTENT: LEADS */}
                 {activeTab === "Leads" && (

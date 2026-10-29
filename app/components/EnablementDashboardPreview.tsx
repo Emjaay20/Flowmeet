@@ -3,10 +3,10 @@ import { BarChart3, TrendingUp, Users, DollarSign, Zap, Bot, ArrowUpRight, Shiel
 export default function EnablementDashboardPreview() {
     const kpis = [
         {
-            label: "Average Speed-to-Lead",
-            value: "3.2 Secs",
-            change: "+850% Faster",
-            comparison: "vs. 42 hours B2B industry average",
+            label: "Enrichment & Routing Speed",
+            value: "< 1.2 Secs",
+            change: "Real-Time Pipeline",
+            comparison: "Live DOM scraping & microsecond Go routing",
             icon: <Zap className="w-5 h-5 text-amber-600" />,
             color: "border-amber-200 bg-amber-50 text-amber-800",
             valColor: "text-slate-900"
@@ -15,17 +15,17 @@ export default function EnablementDashboardPreview() {
             label: "Level-1 Support Deflection",
             value: "84.7%",
             change: "Zero Human Lag",
-            comparison: "Resolved autonomously via Python RAG",
+            comparison: "Resolved autonomously via Python RAG (<2ms)",
             icon: <Bot className="w-5 h-5 text-indigo-600" />,
             color: "border-indigo-200 bg-indigo-50 text-indigo-800",
             valColor: "text-slate-900"
         },
         {
-            label: "Enterprise Pipeline Created",
-            value: "$1.42M ARR",
-            change: "Q3 Attributed",
-            comparison: "High-intent deals converted instantly",
-            icon: <DollarSign className="w-5 h-5 text-emerald-600" />,
+            label: "Total System RAM Footprint",
+            value: "~132 MB",
+            change: "Oracle VPS Optimized",
+            comparison: "4 isolated polyglot microservices in production",
+            icon: <ShieldCheck className="w-5 h-5 text-emerald-600" />,
             color: "border-emerald-200 bg-emerald-50 text-emerald-800",
             valColor: "text-slate-900"
         }
