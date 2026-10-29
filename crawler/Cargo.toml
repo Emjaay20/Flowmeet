@@ -24,5 +24,4 @@ time = { version = "0.3", features = ["formatting", "macros"] }
 opt-level = "z"        # Optimize for size and minimal memory footprint
 lto = true             # Link-time optimization
 codegen-units = 1      # Reduce parallel code generation for smaller binary size
-panic = "abort"        # Strip unwind tables to reduce RAM footprint on 1GB VPS
 strip = true           # Strip debug symbols automatically in release binary
