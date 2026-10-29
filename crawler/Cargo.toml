@@ -1,0 +1,28 @@
+[package]
+name = "flowmeet-crawler"
+version = "0.1.0"
+edition = "2021"
+description = "High-throughput Rust Web-to-LLM Scraper & B2B Firmographic Intelligence Engine"
+authors = ["FlowMeet AI Engineering Team"]
+
+[dependencies]
+axum = "0.7"
+tokio = { version = "1.36", features = ["full"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+scraper = "0.19"
+html2md = "0.2"
+regex = "1.10"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tower = { version = "0.4", features = ["limit", "timeout"] }
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+time = { version = "0.3", features = ["formatting", "macros"] }
+
+[profile.release]
+opt-level = "z"        # Optimize for size and minimal memory footprint
+lto = true             # Link-time optimization
+codegen-units = 1      # Reduce parallel code generation for smaller binary size
+panic = "abort"        # Strip unwind tables to reduce RAM footprint on 1GB VPS
+strip = true           # Strip debug symbols automatically in release binary

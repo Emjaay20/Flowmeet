@@ -1,172 +1,132 @@
-import Link from "next/link";
 import Header from "./components/Header";
+import InteractiveWidget from "./components/InteractiveWidget";
+import ArchitectureSection from "./components/ArchitectureSection";
+import EnablementDashboardPreview from "./components/EnablementDashboardPreview";
 import ContactForm from "./components/ContactForm";
+import { Sparkles, ArrowRight, CheckCircle2, Terminal, Cpu, ShieldCheck, Zap, Globe, GitBranch } from "lucide-react";
+import Link from "next/link";
 
-export default function LandingPage() {
-  return (
-    <div style={{ minHeight: '100vh', background: '#ffffff', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      {/* Navigation */}
-      <Header />
+export default function Home() {
+    return (
+        <div className="min-h-screen bg-[#f8fafc] text-slate-900 selection:bg-blue-600 selection:text-white">
+            <Header />
 
-      <main>
-        {/* Hero Section */}
-        <section style={{ paddingTop: '140px', paddingBottom: '80px', position: 'relative' }}>
-          <div style={{ position: 'absolute', inset: 0, zIndex: -1, background: 'radial-gradient(ellipse 80% 50% at 50% -20%, rgba(139, 92, 246, 0.12), transparent)' }}></div>
+            {/* Hero Section */}
+            <section className="pt-32 pb-20 md:pt-40 md:pb-28 overflow-hidden bg-subtle-grid border-b border-gray-200 bg-white">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
+                    {/* Top Tech Badge */}
+                    <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-slate-50 border border-gray-200 shadow-xs mb-8">
+                        <span className="flex h-2 w-2 relative">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600"></span>
+                        </span>
+                        <span className="text-xs font-mono font-semibold text-slate-700">
+                            POLYGLOT INFRA: <span className="text-blue-600">RUST</span> + <span className="text-amber-600">GOLANG</span> + <span className="text-indigo-600">PYTHON RAG</span>
+                        </span>
+                        <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold border border-blue-200 ml-1">v2.0 LIVE</span>
+                    </div>
 
-          <div style={{ maxWidth: '900px', margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 14px', marginBottom: '24px', borderRadius: '9999px', background: 'rgba(139, 92, 246, 0.1)' }}>
-              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#7c3aed' }}></span>
-              <span style={{ fontSize: '14px', fontWeight: 500, color: '#7c3aed' }}>Now with AI-powered lead scoring</span>
-            </div>
+                    {/* Main Headline */}
+                    <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold text-slate-900 tracking-tight leading-tight max-w-5xl mx-auto mb-6">
+                        Turn Web Traffic into Pipeline & Deflect Support in <span className="text-blue-600">&lt;3 Seconds</span>
+                    </h1>
 
-            <h1 style={{ fontSize: '48px', fontWeight: 700, color: '#111827', lineHeight: 1.1, marginBottom: '24px' }}>
-              Turn inbound leads into
-              <span style={{ display: 'block', background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                qualified meetings
-              </span>
-            </h1>
+                    {/* Subheadline */}
+                    <p className="max-w-3xl mx-auto text-lg sm:text-2xl text-slate-600 font-normal leading-relaxed mb-10">
+                        The AI Revenue & Enablement Super-Engine. Inspired by <strong className="text-slate-900 font-semibold">Chili Piper</strong> conversion, <strong className="text-slate-900 font-semibold">Luminovo</strong> triage, and <strong className="text-slate-900 font-semibold">Firecrawl</strong> web scraping—built to run flawlessly on lightweight edge nodes.
+                    </p>
 
-            <p style={{ fontSize: '18px', color: '#4b5563', maxWidth: '700px', margin: '0 auto 40px', lineHeight: 1.7 }}>
-              FlowMeet uses AI to instantly score your leads, identify the best opportunities, and book meetings automatically — so your team can focus on closing deals.
-            </p>
+                    {/* CTA Buttons */}
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto mb-16">
+                        <a
+                            href="#interactive-demo"
+                            className="w-full sm:w-auto px-8 py-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-base shadow-md transition-all flex items-center justify-center gap-2"
+                        >
+                            <Zap className="w-5 h-5 fill-white text-white" />
+                            <span>Test Live Engine</span>
+                        </a>
+                        <Link
+                            href="/docs"
+                            className="w-full sm:w-auto px-8 py-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-gray-300 font-mono text-sm font-semibold transition-all flex items-center justify-center gap-2"
+                        >
+                            <Terminal className="w-4 h-4 text-slate-600" />
+                            <span>Architecture Docs</span>
+                        </Link>
+                    </div>
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
-              <Link
-                href="/signup"
-                style={{
-                  color: '#ffffff',
-                  fontWeight: 600,
-                  padding: '16px 32px',
-                  borderRadius: '9999px',
-                  fontSize: '14px',
-                  textDecoration: 'none',
-                  background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-                  boxShadow: '0 8px 32px rgba(139, 92, 246, 0.3)'
-                }}
-              >
-                Start your free trial
-              </Link>
-              <Link
-                href="#contact"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  fontWeight: 600,
-                  color: '#374151',
-                  padding: '16px 32px',
-                  borderRadius: '9999px',
-                  fontSize: '14px',
-                  border: '1px solid #d1d5db',
-                  textDecoration: 'none',
-                  background: '#ffffff'
-                }}
-              >
-                <span style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="8" height="10" viewBox="0 0 8 10" fill="white"><path d="M0 0L8 5L0 10V0Z" /></svg>
-                </span>
-                See it in action
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* Features Grid */}
-        <section id="features" style={{ padding: '80px 24px', background: '#f9fafb' }}>
-          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-            <div style={{ textAlign: 'center', marginBottom: '64px' }}>
-              <p style={{ fontSize: '14px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px', color: '#7c3aed' }}>Features</p>
-              <h2 style={{ fontSize: '36px', fontWeight: 700, color: '#111827' }}>Everything you need to convert more leads</h2>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
-              {/* Card 1 */}
-              <div style={{ padding: '32px', borderRadius: '16px', border: '1px solid #e5e7eb', background: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" />
-                  </svg>
+                    {/* Social Proof & DevOps Reliability Banner */}
+                    <div className="pt-8 border-t border-gray-200 max-w-4xl mx-auto flex flex-wrap items-center justify-center gap-8 sm:gap-12 text-xs font-mono text-slate-500 font-medium">
+                        <div className="flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                            <span>99.99% Edge Uptime (Automattic Specs)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Cpu className="w-4 h-4 text-blue-600" />
+                            <span>Oracle 1GB VPS Tuned (Linux Cgroups)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Globe className="w-4 h-4 text-indigo-600" />
+                            <span>Transformers.js Local WASM</span>
+                        </div>
+                    </div>
                 </div>
-                <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#111827', marginBottom: '8px' }}>AI Lead Scoring</h3>
-                <p style={{ fontSize: '14px', color: '#6b7280', lineHeight: 1.6 }}>Automatically score and rank leads based on fit, intent, and engagement signals.</p>
-              </div>
+            </section>
 
-              {/* Card 2 */}
-              <div style={{ padding: '32px', borderRadius: '16px', border: '1px solid #e5e7eb', background: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-                  </svg>
-                </div>
-                <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#111827', marginBottom: '8px' }}>Instant Scheduling</h3>
-                <p style={{ fontSize: '14px', color: '#6b7280', lineHeight: 1.6 }}>Qualified leads are automatically invited to book a meeting on your calendar.</p>
-              </div>
-
-              {/* Card 3 */}
-              <div style={{ padding: '32px', borderRadius: '16px', border: '1px solid #e5e7eb', background: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" />
-                  </svg>
-                </div>
-                <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#111827', marginBottom: '8px' }}>Smart Notifications</h3>
-                <p style={{ fontSize: '14px', color: '#6b7280', lineHeight: 1.6 }}>Get instant alerts when high-value leads engage so you never miss an opportunity.</p>
-              </div>
+            {/* Interactive Demo Widget Section */}
+            <div id="conversion" className="bg-slate-50 border-b border-gray-200">
+                <InteractiveWidget />
             </div>
-          </div>
-        </section>
 
-
-        {/* Contact Section */}
-        <section id="contact" style={{ padding: '80px 24px', background: '#f9fafb' }}>
-          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-            <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-              <p style={{ fontSize: '14px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px', color: '#7c3aed' }}>Contact Us</p>
-              <h2 style={{ fontSize: '36px', fontWeight: 700, color: '#111827' }}>Have questions? Get in touch.</h2>
-              <p style={{ color: '#6b7280', marginTop: '16px' }}>Fill out the form below and our team will get back to you shortly.</p>
+            {/* Polyglot Architecture Superpowers */}
+            <div id="support-triage" className="bg-white border-b border-gray-200">
+                <ArchitectureSection />
             </div>
-            <ContactForm />
-          </div>
-        </section>
 
-        {/* CTA Section */}
-        <section style={{ padding: '80px 24px' }}>
-          <div style={{ maxWidth: '900px', margin: '0 auto', textAlign: 'center', borderRadius: '24px', padding: '64px 48px', background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)' }}>
-            <h2 style={{ fontSize: '32px', fontWeight: 700, color: '#ffffff', marginBottom: '16px' }}>Ready to convert more leads?</h2>
-            <p style={{ color: '#c7d2fe', marginBottom: '32px' }}>Start your free 14-day trial today. No credit card required.</p>
-            <Link
-              href="/signup"
-              style={{
-                display: 'inline-block',
-                color: '#312e81',
-                fontWeight: 600,
-                padding: '16px 32px',
-                borderRadius: '9999px',
-                fontSize: '14px',
-                background: '#ffffff',
-                textDecoration: 'none'
-              }}
-            >
-              Get started for free
-            </Link>
-          </div>
-        </section>
-      </main>
+            {/* Enablement & RevOps KPIs */}
+            <div className="bg-slate-50 border-b border-gray-200">
+                <EnablementDashboardPreview />
+            </div>
 
-      {/* Footer */}
-      <footer style={{ borderTop: '1px solid #e5e7eb', padding: '48px 24px' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '24px', height: '24px', background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)', borderRadius: '6px' }}></div>
-            <span style={{ fontWeight: 600, color: '#111827' }}>FlowMeet</span>
-          </div>
-          <p style={{ fontSize: '14px', color: '#6b7280' }}>© 2026 FlowMeet, Inc. All rights reserved.</p>
-          <div style={{ display: 'flex', gap: '24px' }}>
-            <a href="#" style={{ fontSize: '14px', color: '#6b7280', textDecoration: 'none' }}>Privacy</a>
-            <a href="#" style={{ fontSize: '14px', color: '#6b7280', textDecoration: 'none' }}>Terms</a>
-          </div>
+            {/* Contact & White-Label Resell Section */}
+            <section id="contact" className="py-24 bg-white max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="max-w-4xl mx-auto text-center mb-12">
+                    <h2 className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
+                        Deploy FlowMeet for <span className="text-blue-600">Your Enterprise</span>
+                    </h2>
+                    <p className="mt-4 text-slate-600 text-lg">
+                        Want to acquire white-label resale licensing, integrate custom internal data sources, or discuss senior architecture & AI engineering roles? Reach out below.
+                    </p>
+                </div>
+                <div className="relative z-10">
+                    <ContactForm />
+                </div>
+            </section>
+
+            {/* Footer */}
+            <footer className="border-t border-gray-200 bg-slate-900 text-white py-12">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="flex items-center gap-3">
+                        <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
+                            <Sparkles className="w-4 h-4 text-white" />
+                        </div>
+                        <span className="font-bold tracking-tight">FlowMeet AI Suite v2.0</span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-center gap-6 text-xs font-mono text-slate-400">
+                        <a href="#interactive-demo" className="hover:text-white transition-colors">Interactive Demo</a>
+                        <a href="#architecture" className="hover:text-white transition-colors">Polyglot Specs</a>
+                        <a href="#enablement-kpis" className="hover:text-white transition-colors">RevOps Impact</a>
+                        <Link href="/docs" className="hover:text-white transition-colors">API Reference</Link>
+                        <a href="https://github.com/Emjaay20/Flowmeet" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-white flex items-center gap-1">
+                            <GitBranch className="w-4 h-4" /> GitHub Repo
+                        </a>
+                    </div>
+
+                    <div className="text-xs text-slate-500 font-mono">
+                        © 2026 FlowMeet Inc. All rights reserved. Built for ultra-high availability.
+                    </div>
+                </div>
+            </footer>
         </div>
-      </footer>
-    </div>
-  );
+    );
 }

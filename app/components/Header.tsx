@@ -2,131 +2,135 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Sparkles, Menu, X, Activity, ShieldCheck } from "lucide-react";
 
 export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     return (
-        <header className="fixed top-0 left-0 right-0 z-[100] bg-white border-b border-gray-200 shadow-sm">
-            <nav className="max-w-[1200px] mx-auto flex items-center justify-between px-6 py-4">
-                <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-violet-500 rounded-lg"></div>
-                    <span className="text-xl font-bold text-gray-900">FlowMeet</span>
+        <header className="fixed top-0 left-0 right-0 z-[100] bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-xs">
+            <nav className="max-w-7xl mx-auto flex items-center justify-between px-6 py-3.5">
+                <div className="flex items-center gap-6">
+                    <Link href="/" className="flex items-center gap-2.5 group">
+                        <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center shadow-md shadow-blue-600/20 group-hover:bg-blue-700 transition-colors">
+                            <Sparkles className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-xl font-extrabold tracking-tight text-slate-900 flex items-center gap-2">
+                                FlowMeet <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-mono font-semibold">AI Suite</span>
+                            </span>
+                        </div>
+                    </Link>
+
+                    {/* Live Status Tag - Automattic / SRE Signal */}
+                    <div className="hidden lg:flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-mono text-emerald-700">
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+                        </span>
+                        <span>Edge Router Operational (0.8ms latency)</span>
+                    </div>
                 </div>
 
                 {/* Desktop Navigation */}
-                <div className="hidden md:flex items-center gap-8">
-                    <a href="#features" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Features</a>
-                    <a href="#how-it-works" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">How it works</a>
-                    <a href="#pricing" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Pricing</a>
-                    <a href="#about" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">About</a>
-                    <Link href="/docs" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">API</Link>
-                    <a href="#contact" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Contact</a>
+                <div className="hidden md:flex items-center gap-6">
+                    <a href="#conversion" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">
+                        Demand Conversion
+                    </a>
+                    <a href="#support-triage" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">
+                        AI Support Triage
+                    </a>
+                    <a href="#architecture" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">
+                        Polyglot Infra
+                    </a>
+                    <a href="#enablement-kpis" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">
+                        RevOps KPIs
+                    </a>
+                    <Link href="/docs" className="text-sm font-mono font-medium text-slate-500 hover:text-slate-900 transition-colors">
+                        API Docs
+                    </Link>
                 </div>
 
                 <div className="hidden md:flex items-center gap-3">
-                    <Link href="/login" className="text-sm font-medium text-gray-600 hover:text-gray-900 px-4 py-2 transition-colors">
+                    <Link href="/login" className="text-sm font-semibold text-slate-600 hover:text-slate-900 px-3 py-2 transition-colors">
                         Sign in
                     </Link>
-                    <Link
-                        href="/signup"
-                        className="text-sm font-semibold text-white px-5 py-2.5 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 hover:opacity-90 transition-opacity"
+                    <a
+                        href="#interactive-demo"
+                        className="inline-flex items-center justify-center px-4 py-2.5 text-sm font-semibold text-white bg-slate-900 hover:bg-blue-600 rounded-lg shadow-sm transition-all flex items-center gap-2"
                     >
-                        Start free trial
-                    </Link>
+                        <Activity className="w-4 h-4 text-blue-400 group-hover:text-white" />
+                        <span>Test Live Engine</span>
+                    </a>
                 </div>
 
                 {/* Mobile Menu Button */}
                 <button
-                    className="md:hidden p-2 text-gray-600 hover:text-gray-900"
+                    className="md:hidden p-2 text-slate-600 hover:text-slate-900 rounded-lg focus:outline-none"
                     onClick={() => setIsMenuOpen(!isMenuOpen)}
                 >
-                    {isMenuOpen ? (
-                        <svg
-                            className="w-6 h-6"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M6 18L18 6M6 6l12 12"
-                            />
-                        </svg>
-                    ) : (
-                        <svg
-                            className="w-6 h-6"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M4 6h16M4 12h16M4 18h16"
-                            />
-                        </svg>
-                    )}
+                    {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                 </button>
             </nav>
 
             {/* Mobile Navigation */}
             {isMenuOpen && (
-                <div className="md:hidden bg-white border-t border-gray-100 absolute top-full left-0 right-0 shadow-lg">
-                    <div className="flex flex-col p-4 space-y-4">
+                <div className="md:hidden bg-white border-b border-gray-200 px-6 py-5 space-y-4 shadow-lg">
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-mono text-emerald-700 w-fit">
+                        <span className="h-2 w-2 rounded-full bg-emerald-600"></span>
+                        <span>Edge Router Operational</span>
+                    </div>
+                    <div className="flex flex-col space-y-3">
                         <a
-                            href="#features"
-                            className="text-sm font-medium text-gray-600 hover:text-gray-900"
+                            href="#conversion"
+                            className="text-base font-medium text-slate-700 hover:text-blue-600"
                             onClick={() => setIsMenuOpen(false)}
                         >
-                            Features
+                            Demand Conversion
                         </a>
                         <a
-                            href="#how-it-works"
-                            className="text-sm font-medium text-gray-600 hover:text-gray-900"
+                            href="#support-triage"
+                            className="text-base font-medium text-slate-700 hover:text-blue-600"
                             onClick={() => setIsMenuOpen(false)}
                         >
-                            How it works
+                            AI Support Triage
                         </a>
                         <a
-                            href="#pricing"
-                            className="text-sm font-medium text-gray-600 hover:text-gray-900"
+                            href="#architecture"
+                            className="text-base font-medium text-slate-700 hover:text-blue-600"
                             onClick={() => setIsMenuOpen(false)}
                         >
-                            Pricing
+                            Polyglot Infra
                         </a>
                         <a
-                            href="#about"
-                            className="text-sm font-medium text-gray-600 hover:text-gray-900"
+                            href="#enablement-kpis"
+                            className="text-base font-medium text-slate-700 hover:text-blue-600"
                             onClick={() => setIsMenuOpen(false)}
                         >
-                            About
+                            RevOps KPIs
                         </a>
-                        <a
-                            href="#contact"
-                            className="text-sm font-medium text-gray-600 hover:text-gray-900"
+                        <Link
+                            href="/docs"
+                            className="text-base font-mono text-slate-500 hover:text-slate-900"
                             onClick={() => setIsMenuOpen(false)}
                         >
-                            Contact
-                        </a>
-                        <hr className="border-gray-100" />
+                            API Docs
+                        </Link>
+                        <hr className="border-gray-200" />
                         <Link
                             href="/login"
-                            className="text-sm font-medium text-gray-600 hover:text-gray-900"
+                            className="text-base font-medium text-slate-600 hover:text-slate-900"
                             onClick={() => setIsMenuOpen(false)}
                         >
                             Sign in
                         </Link>
-                        <Link
-                            href="/signup"
-                            className="text-sm font-semibold text-center text-white px-5 py-2.5 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 hover:opacity-90 transition-opacity"
+                        <a
+                            href="#interactive-demo"
+                            className="w-full text-center py-3 rounded-lg bg-slate-900 text-white font-semibold shadow-xs"
                             onClick={() => setIsMenuOpen(false)}
                         >
-                            Start free trial
-                        </Link>
+                            Test Live Engine
+                        </a>
                     </div>
                 </div>
             )}

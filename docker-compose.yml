@@ -1,0 +1,82 @@
+services:
+  flowmeet-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: flowmeet-web
+    restart: unless-stopped
+    mem_limit: 300m
+    memswap_limit: 600m
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-https://xfvvrqgdklymfubnbiyz.supabase.co}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-sb_publishable_0BNj-1kLBekuFHwY2Pg9zQ_PgAM3GeW}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:-sb_secret_qL_YYlCsagjBjEUnteXb_g_iFTHIotV}
+      FLOWMEET_INGEST_SECRET: ${FLOWMEET_INGEST_SECRET:-fm_live_x9k2m4p8q7w3_secure_ingest}
+      RUST_CRAWLER_URL: http://flowmeet-crawler:8081
+      GOLANG_CONCIERGE_URL: http://flowmeet-concierge:8082
+      PYTHON_AI_BRAIN_URL: http://flowmeet-ai-brain:8083
+    ports:
+      - "3000:3000"
+    depends_on:
+      - flowmeet-crawler
+      - flowmeet-concierge
+      - flowmeet-ai-brain
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=aetherhost-net"
+      - "traefik.http.routers.flowmeet-app.rule=Host(`flowmeet.aetherhost.com.ng`)"
+      - "traefik.http.routers.flowmeet-app.entrypoints=websecure"
+      - "traefik.http.routers.flowmeet-app.tls.certresolver=letsencrypt"
+      - "traefik.http.services.flowmeet-app.loadbalancer.server.port=3000"
+    networks:
+      - flowmeet-internal
+      - aetherhost-net
+
+  flowmeet-crawler:
+    build:
+      context: ./crawler
+      dockerfile: Dockerfile
+    container_name: flowmeet-crawler
+    restart: unless-stopped
+    mem_limit: 45m
+    memswap_limit: 100m
+    environment:
+      RUST_LOG: "flowmeet_crawler=info,axum=info"
+      TOKIO_WORKER_THREADS: 2
+    networks:
+      - flowmeet-internal
+
+  flowmeet-concierge:
+    build:
+      context: ./concierge
+      dockerfile: Dockerfile
+    container_name: flowmeet-concierge
+    restart: unless-stopped
+    mem_limit: 35m
+    memswap_limit: 80m
+    environment:
+      GOMAXPROCS: 2
+      GOGC: 100
+    networks:
+      - flowmeet-internal
+
+  flowmeet-ai-brain:
+    build:
+      context: ./ai-brain
+      dockerfile: Dockerfile
+    container_name: flowmeet-ai-brain
+    restart: unless-stopped
+    mem_limit: 95m
+    memswap_limit: 180m
+    environment:
+      PYTHONUNBUFFERED: 1
+    networks:
+      - flowmeet-internal
+
+networks:
+  flowmeet-internal:
+    driver: bridge
+  aetherhost-net:
+    external: true
