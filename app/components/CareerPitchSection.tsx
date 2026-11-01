@@ -143,15 +143,15 @@ export default function CareerPitchSection() {
                 {/* Section Eyebrow */}
                 <div className="max-w-3xl mb-12">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-100 border border-zinc-200 text-zinc-700 text-xs font-mono font-medium mb-4">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#c8f944]"></span>
-                        <span>CAREER PITCH &amp; ARCHITECTURE MATRIX</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-zinc-950"></span>
+                        <span>PRODUCTION BENCHMARKS &amp; ARCHITECTURE</span>
                     </div>
                     <h2 className="font-editorial text-4xl sm:text-6xl font-normal text-zinc-950 tracking-tight leading-[1.1]">
-                        Engineered for 3 teams. <br className="hidden sm:inline" />
-                        <span className="italic font-serif text-zinc-800">Irresistible for your next hire.</span>
+                        Engineered around the <br className="hidden sm:inline" />
+                        <span className="italic font-serif text-zinc-800">toughest production constraints.</span>
                     </h2>
                     <p className="mt-4 text-zinc-600 text-sm sm:text-base leading-relaxed font-sans">
-                        Rather than building another generic mock SaaS, Flowmeet was deliberately engineered around the production challenges of top-tier infrastructure, revenue, and AI enablement teams.
+                        Rather than building a surface-level demo, Flowmeet was engineered to solve three specific high-throughput challenges: memory-efficient DOM scraping, sub-50ms deterministic lead routing, and semantic RAG support deflection.
                     </p>
                 </div>
 

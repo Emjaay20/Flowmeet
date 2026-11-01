@@ -89,11 +89,11 @@ export default function PricingSection() {
                         </div>
                     </div>
 
-                    {/* Tier 2: Success-Fee RevOps (Highlighted / Best Value) */}
-                    <div className="bg-zinc-950 text-white rounded-3xl border-2 border-zinc-900 shadow-xl p-8 flex flex-col justify-between relative lg:-translate-y-2">
-                        {/* Top Best Value Banner */}
-                        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-[#c8f944] text-zinc-950 font-mono text-[10px] font-bold tracking-wider uppercase shadow-sm">
-                            ★ BEST VALUE • REVOPS ACCELERATOR
+                    {/* Tier 2: Success-Fee RevOps (Highlighted / Recommended) */}
+                    <div className="bg-zinc-950 text-white rounded-3xl border border-zinc-800 shadow-xl p-8 flex flex-col justify-between relative lg:-translate-y-2">
+                        {/* Top Recommended Banner */}
+                        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-full bg-[#c8f944] text-zinc-950 font-mono text-[10px] font-bold tracking-wider uppercase shadow-xs">
+                            RECOMMENDED
                         </div>
 
                         <div>
@@ -102,7 +102,7 @@ export default function PricingSection() {
                                     PERFORMANCE MODEL
                                 </span>
                                 <span className="px-2.5 py-0.5 rounded-full bg-zinc-800 text-[10px] font-mono text-zinc-300 font-semibold border border-zinc-700">
-                                    Zero Subscription
+                                    Zero Platform Fee
                                 </span>
                             </div>
 

@@ -78,7 +78,7 @@ POST /api/cal/slots
         latency: "410ms RAG",
         latencyType: "fast",
         title: "Python RAG Brain",
-        subtitle: "Luminovo-Style FinAI Deflection",
+        subtitle: "Vector Search & Support Deflection",
         endpoint: "POST /api/ai-brain",
         description: "Autonomous technical enablement engine. Matches inbound questions against vector embeddings to answer docs inquiries and escalates qualified leads instantly.",
         codeSnippet: `// Python FastAPI + pgvector (:8083)
@@ -111,12 +111,12 @@ export default function FourStepsSection() {
                 <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-16 gap-6">
                     <div className="max-w-2xl">
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-100 border border-zinc-200 text-zinc-700 text-xs font-mono font-medium mb-4">
-                            <span className="w-1.5 h-1.5 rounded-full bg-zinc-900"></span>
-                            <span>HOW IT WORKS • 4-STEP VERIFIABLE PIPELINE</span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-zinc-950"></span>
+                            <span>HOW IT WORKS • 4-STEP PIPELINE</span>
                         </div>
                         <h2 className="font-editorial text-4xl sm:text-6xl font-normal text-zinc-950 tracking-tight leading-[1.1]">
                             From anonymous visitor <br className="hidden sm:inline" />
-                            to booked revenue in <span className="italic font-serif text-zinc-800">four verifiable steps.</span>
+                            to booked revenue in <span className="italic font-serif text-zinc-800">four deterministic steps.</span>
                         </h2>
                     </div>
                     <div className="max-w-md">

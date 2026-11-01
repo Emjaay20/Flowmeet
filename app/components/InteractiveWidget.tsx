@@ -146,16 +146,7 @@ export default function InteractiveWidget() {
                     
                     {/* Left Column: Hero Copy & Live Input Pill */}
                     <div className="lg:col-span-6 space-y-6">
-                        {/* Status Tag */}
-                        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-900 text-white text-[11px] font-mono tracking-tight shadow-xs">
-                            <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#c8f944] opacity-80"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#c8f944]"></span>
-                            </span>
-                            <span>LIVE ON VPS (0.8ms) • 132MB/1024MB RAM</span>
-                        </div>
-
-                        {/* Editorial Serif Headline */}
+                        {/* Editorial Headline */}
                         <h1 className="font-editorial text-5xl sm:text-7xl font-normal text-zinc-950 tracking-tight leading-[1.05]">
                             Turn any email <br className="hidden sm:inline" />
                             or domain into a <br className="hidden sm:inline" />
@@ -165,7 +156,7 @@ export default function InteractiveWidget() {
 
                         {/* Crisp Subtitle */}
                         <p className="text-zinc-600 text-base sm:text-lg leading-relaxed max-w-xl font-sans">
-                            Stop losing leads to 48-hour SDR delays. Flowmeet enriches corporate domains via Rust in &lt;3s, scores intent at the edge, and auto-books high-value accounts directly into your AE&apos;s calendar before they leave your site.
+                            Stop losing qualified inbound pipeline to 48-hour SDR delays. Flowmeet parses company domains in seconds, evaluates territory routing rules, and reserves meeting slots directly in your AE&apos;s calendar before the prospect leaves your site.
                         </p>
 
                         {/* Interactive Pill Input Container */}
