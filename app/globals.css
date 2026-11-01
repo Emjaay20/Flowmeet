@@ -2,15 +2,16 @@
 
 @layer base {
   :root {
-    --background: #f8fafc;
-    --foreground: #0f172a;
+    --background: #fbfbfa;
+    --foreground: #09090b;
     --card: #ffffff;
-    --card-foreground: #0f172a;
-    --primary: #2563eb;
+    --card-foreground: #09090b;
+    --primary: #18181b;
     --primary-foreground: #ffffff;
-    --secondary: #f1f5f9;
-    --accent: #0284c7;
-    --border: #e2e8f0;
+    --accent-lime: #c8f944;
+    --accent-lime-fg: #0f172a;
+    --secondary: #f4f4f5;
+    --border: #e4e4e7;
   }
 }
 
@@ -22,51 +23,53 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
-  --color-accent: var(--accent);
+  --color-lime: var(--accent-lime);
   --color-border: var(--border);
-  --font-sans: var(--font-geist-sans, ui-sans-serif, system-ui, -apple-system, sans-serif);
-  --font-mono: var(--font-geist-mono, ui-monospace, SFMono-Regular, monospace);
+  --font-serif: "Instrument Serif", Georgia, Cambria, "Times New Roman", serif;
+  --font-sans: "Plus Jakarta Sans", var(--font-geist-sans), -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "JetBrains Mono", var(--font-geist-mono), ui-monospace, monospace;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background-color: #fbfbfa;
+  color: #09090b;
   font-family: var(--font-sans);
   overflow-x: hidden;
   margin: 0;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Custom modern scrollbar & clean B2B utility classes */
+.font-editorial {
+  font-family: "Instrument Serif", Georgia, serif;
+}
+
+/* Custom modern scrollbar & clean utility classes */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #f8fafc;
+  background: #f4f4f5;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
+  background: #d4d4d8;
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #a1a1aa;
 }
 
-.clean-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+.subtle-dot-grid {
+  background-image: radial-gradient(#d4d4d8 1px, transparent 1px);
+  background-size: 20px 20px;
 }
 
-.clean-panel {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+.glass-nav {
+  background: rgba(251, 251, 250, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
-.text-brand-blue {
-  color: #2563eb;
-}
-
-.bg-subtle-grid {
-  background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
-  background-size: 24px 24px;
+.glow-lime {
+  box-shadow: 0 0 35px -5px rgba(200, 249, 68, 0.45);
 }
