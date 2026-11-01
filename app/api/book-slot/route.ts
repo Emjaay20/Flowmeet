@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
+import { matchOrCreateSalesforceRecord, createSalesforceEvent } from "@/app/lib/salesforce";
 
 export const runtime = "nodejs";
 
@@ -160,12 +161,48 @@ export async function POST(req: NextRequest) {
             });
         }
 
+        // 3. Sync to Salesforce CRM (Lead-to-Account Matching & Event Creation)
+        let sfdcLeadSync: any = null;
+        let sfdcEventSync: any = null;
+        const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        tomorrow.setUTCHours(15, 0, 0, 0);
+        const tomorrowEnd = new Date(tomorrow.getTime() + 30 * 60 * 1000);
+
+        try {
+            sfdcLeadSync = await matchOrCreateSalesforceRecord({
+                email,
+                company,
+                domain,
+                leadSource: "Flowmeet Web Concierge",
+                icpScore,
+                techStack: ["Next.js", "Cloud Infrastructure"],
+                territory: "Global Strategic"
+            });
+
+            sfdcEventSync = await createSalesforceEvent({
+                leadOrContactId: sfdcLeadSync.sfdcRecordId,
+                accountId: sfdcLeadSync.objectType === "Account" ? sfdcLeadSync.sfdcRecordId : undefined,
+                ownerId: sfdcLeadSync.assignedOwnerId,
+                subject: `Flowmeet Demo • ${company} & ${repName}`,
+                startDateTime: tomorrow.toISOString(),
+                endDateTime: tomorrowEnd.toISOString(),
+                description: `Inbound meeting booked via Flowmeet Concierge. Video Bridge: ${meetingUrl}`,
+                meetingUrl
+            });
+        } catch (sfErr) {
+            console.warn("Salesforce sync error in book-slot:", sfErr);
+        }
+
         return NextResponse.json({
             success: true,
             id: prospectEmail.data?.id,
             slot,
             repName,
-            recipient: email
+            recipient: email,
+            salesforce: {
+                leadOrAccount: sfdcLeadSync,
+                event: sfdcEventSync
+            }
         });
 
     } catch (err: any) {

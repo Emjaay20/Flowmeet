@@ -347,7 +347,7 @@ END:VCALENDAR`}
                                     </>
                                 ) : (
                                     <>
-                                        <span>Trigger Salesforce Sync Simulation</span>
+                                        <span>Execute Salesforce REST Sync</span>
                                         <ArrowRight className="w-4 h-4 text-zinc-950" />
                                     </>
                                 )}

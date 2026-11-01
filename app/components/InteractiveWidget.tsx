@@ -144,7 +144,8 @@ export default function InteractiveWidget() {
                 setBookingSuccess(true);
                 setLogs((prev) => [
                     ...prev,
-                    { time_ms: 1050, text: `✓ [Email Delivered] Real calendar invite (.ics) sent to ${emailInput} via Resend!`, type: "success" }
+                    { time_ms: 1050, text: `✓ [Email Delivered] Real calendar invite (.ics) sent to ${emailInput} via Resend!`, type: "success" },
+                    { time_ms: 1120, text: `✓ [Salesforce CRM] Synced ${data.salesforce?.leadOrAccount?.objectType || "Lead"} & Event (${data.salesforce?.leadOrAccount?.sfdcRecordId}) to Salesforce`, type: "success" }
                 ]);
             } else {
                 setBookingSuccess(true);
