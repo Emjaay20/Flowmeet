@@ -272,11 +272,11 @@ export async function POST(req: NextRequest) {
                         };
                     } else {
                         assignedAE = {
-                            name: "Sarah Jenkins",
-                            title: "Senior Enterprise AE (Americas)",
-                            email: "sarah.jenkins@flowmeet.ai",
-                            calendar_url: "https://cal.com/sarah-jenkins-flowmeet/15min",
-                            territory: "Americas HQ (San Francisco / NY)",
+                            name: "Yusuf Abubakar",
+                            title: "Founder & Lead Systems Architect",
+                            email: "yusuf@yusufsaka.dev",
+                            calendar_url: "https://cal.com/yusuf-abubakar/15min",
+                            territory: "Executive Strategic (Americas & Global)",
                             booking_slots: ["Tomorrow 11:00 AM EST", "Tomorrow 2:00 PM EST", "Friday 1:30 PM EST"]
                         };
                     }
