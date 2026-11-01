@@ -257,6 +257,42 @@ END:VCALENDAR`}
                             </div>
                         </section>
 
+                        {/* ADR 004: Firecrawl & Luminovo Integration */}
+                        <section id="adr-004" className="bg-white rounded-3xl border border-zinc-200/90 shadow-sm p-6 sm:p-10 space-y-6">
+                            <div className="flex items-center gap-2 text-xs font-mono text-zinc-500 pb-2 border-b border-zinc-100">
+                                <Cpu className="w-4 h-4 text-zinc-900" />
+                                <span className="font-bold text-zinc-950">ADR-004</span> • FIRECRAWL &amp; LUMINOVO PIPELINE
+                            </div>
+                            <h2 className="font-editorial text-3xl sm:text-4xl font-normal text-zinc-950 tracking-tight">
+                                Firecrawl LLM Scraping &amp; Luminovo RAG Triage
+                            </h2>
+                            <p className="text-sm text-zinc-600 leading-relaxed font-sans">
+                                Enterprise enrichment requires adversarial DOM extraction that bypasses modern anti-bot protections, alongside automated technical question answering that defends AE calendars:
+                            </p>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans">
+                                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
+                                    <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
+                                        <span className="font-mono font-bold text-zinc-900">Firecrawl v1 API Integration</span>
+                                        <span className="font-mono text-[10px] text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">11,000+ Credits Active</span>
+                                    </div>
+                                    <p className="text-zinc-600">
+                                        Flowmeet connects directly to <code className="font-mono text-zinc-800">POST https://api.firecrawl.dev/v1/scrape</code> to strip JavaScript bloat, bypass bot protections, and return token-dense LLM markdown ready for firmographic extraction.
+                                    </p>
+                                </div>
+
+                                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
+                                    <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
+                                        <span className="font-mono font-bold text-zinc-900">Luminovo-Style RAG Triage</span>
+                                        <span className="font-mono text-[10px] text-indigo-700 font-bold bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">FastAPI :8083</span>
+                                    </div>
+                                    <p className="text-zinc-600">
+                                        Modeled after Luminovo&apos;s FinAI / Lumi technical enablement engine. Matches incoming prospect questions against company documentation vector embeddings in Supabase (pgvector) to auto-answer technical RFPs and deflect non-revenue tickets.
+                                    </p>
+                                </div>
+                            </div>
+                        </section>
+
                         {/* Interactive Live Salesforce REST API Tester */}
                         <section id="live-tester" className="bg-zinc-950 text-white rounded-3xl border border-zinc-800 shadow-xl p-6 sm:p-10 space-y-6">
                             <div className="flex items-center justify-between pb-4 border-b border-zinc-800">

@@ -34,42 +34,81 @@ async function fetchLiveWebsite(domain: string): Promise<{
     markdown: string;
     techStack: string[];
     isEnterprise: boolean;
+    engineUsed?: string;
 }> {
     let title = `${domain.toUpperCase()}`;
     let description = `Official website and enterprise portal for ${domain}`;
     let markdown = "";
     const techStack: string[] = [];
     let isEnterprise = false;
+    let engineUsed = "Direct Edge Scraper";
 
-    // 1. Try Jina Reader for clean, live markdown extraction (Fast, Apache-2.0 friendly)
-    try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4500);
+    // 0. Primary: Firecrawl v1 API (Enterprise Scraper using Firecrawl Credits)
+    const firecrawlKey = process.env.FIRECRAWL_API_KEY;
+    if (firecrawlKey) {
+        try {
+            const fcController = new AbortController();
+            const fcTimeout = setTimeout(() => fcController.abort(), 6000);
 
-        const jinaUrl = `https://r.jina.ai/https://${domain}`;
-        const res = await fetch(jinaUrl, {
-            headers: {
-                "User-Agent": "FlowMeet-Enricher/2.0 (+https://flowmeet.ai)",
-                "Accept": "text/plain"
-            },
-            signal: controller.signal
-        });
+            const fcRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${firecrawlKey}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    url: `https://${domain}`,
+                    formats: ["markdown"]
+                }),
+                signal: fcController.signal
+            });
 
-        clearTimeout(timeoutId);
+            clearTimeout(fcTimeout);
 
-        if (res.ok) {
-            markdown = await res.text();
-            
-            // Extract title from first H1 or markdown header
-            const h1Match = markdown.match(/^#\s+(.+)$/m);
-            if (h1Match) title = h1Match[1].trim();
-
-            // Extract description
-            const descMatch = markdown.match(/(?:description|about|mission)[:\s]+(.+)/i);
-            if (descMatch) description = descMatch[1].trim().slice(0, 160);
+            if (fcRes.ok) {
+                const fcData = await fcRes.json();
+                if (fcData?.data?.markdown) {
+                    markdown = fcData.data.markdown;
+                    title = fcData?.data?.metadata?.title || title;
+                    description = fcData?.data?.metadata?.description || description;
+                    engineUsed = "Firecrawl v1 API (Enterprise Credits Active)";
+                }
+            }
+        } catch {
+            // Failover to Jina Reader if Firecrawl times out or fails
         }
-    } catch {
-        // Fallback to direct HTML scrape if Jina is blocked or offline
+    }
+
+    // 1. Fallback: Jina Reader for clean, live markdown extraction
+    if (!markdown) {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 4500);
+
+            const jinaUrl = `https://r.jina.ai/https://${domain}`;
+            const res = await fetch(jinaUrl, {
+                headers: {
+                    "User-Agent": "FlowMeet-Enricher/2.0 (+https://flowmeet.ai)",
+                    "Accept": "text/plain"
+                },
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (res.ok) {
+                markdown = await res.text();
+                engineUsed = "Jina Edge Reader";
+                
+                const h1Match = markdown.match(/^#\s+(.+)$/m);
+                if (h1Match) title = h1Match[1].trim();
+
+                const descMatch = markdown.match(/(?:description|about|mission)[:\s]+(.+)/i);
+                if (descMatch) description = descMatch[1].trim().slice(0, 160);
+            }
+        } catch {
+            // Fallback to direct HTML scrape if Jina is blocked or offline
+        }
     }
 
     // 2. If markdown still empty, attempt direct lightweight fetch
@@ -136,7 +175,8 @@ async function fetchLiveWebsite(domain: string): Promise<{
         description,
         markdown: markdown.slice(0, 3000), // Keep clean snippet
         techStack: Array.from(new Set(techStack)).slice(0, 6),
-        isEnterprise
+        isEnterprise,
+        engineUsed
     };
 }
 
@@ -204,7 +244,7 @@ export async function POST(req: NextRequest) {
                     step: 3,
                     time_ms: t2,
                     status: "DOM_PARSED",
-                    log: `[${t2}ms] DOM parsed. Extracted ~${tokenEstimate} markdown tokens. Page: "${websiteData.title.slice(0, 40)}..."`,
+                    log: `[${t2}ms] DOM parsed (${websiteData.engineUsed || "Edge Scraper"}). Extracted ~${tokenEstimate} markdown tokens. Page: "${websiteData.title.slice(0, 36)}..."`,
                     preview_markdown: websiteData.markdown.slice(0, 500)
                 });
 
