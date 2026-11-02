@@ -60,7 +60,7 @@ KNOWLEDGE_DOCUMENTS = [
             "How Go Concierge territory evaluation works:\n"
             "- EMEA (Munich/London): Elena Rostova (VP Enterprise RevOps)\n"
             "- APAC (Singapore/Tokyo): Marcus Tan (Head of APAC Enterprise)\n"
-            "- Americas (San Francisco/NY): Sarah Jenkins (Senior Enterprise Architect)\n"
+            "- Americas (San Francisco/NY): Yusuf Abubakar (Founder & Lead Systems Architect)\n"
             "Evaluates executive seniority (VP/C-Level +20 pts), headcount (1000+ +25 pts), and free webmail penalties (-25 pts)."
         ),
         "code_snippet": "curl -X POST https://api.flowmeet.ai/api/route-lead \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"email\":\"alex@corp.com\",\"role\":\"VP Engineering\",\"employees\":1500,\"region\":\"EMEA\"}'",

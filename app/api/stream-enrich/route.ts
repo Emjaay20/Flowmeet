@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { supabase } from "@/app/lib/supabase";
+import { getCachedDomainScrape, setCachedDomainScrape, checkRateLimit } from "@/app/lib/cache";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,6 +37,19 @@ async function fetchLiveWebsite(domain: string): Promise<{
     isEnterprise: boolean;
     engineUsed?: string;
 }> {
+    // 0. Cache Hit: Check 24-hour domain cache to protect Firecrawl credits
+    const cached = getCachedDomainScrape(domain);
+    if (cached) {
+        return {
+            title: cached.title,
+            description: cached.description,
+            markdown: cached.markdown,
+            techStack: cached.techStack,
+            isEnterprise: cached.isEnterprise,
+            engineUsed: `${cached.engineUsed} (0 Credits Consumed)`
+        };
+    }
+
     let title = `${domain.toUpperCase()}`;
     let description = `Official website and enterprise portal for ${domain}`;
     let markdown = "";
@@ -170,7 +184,7 @@ async function fetchLiveWebsite(domain: string): Promise<{
         isEnterprise = true;
     }
 
-    return {
+    const finalResult = {
         title,
         description,
         markdown: markdown.slice(0, 3000), // Keep clean snippet
@@ -178,10 +192,21 @@ async function fetchLiveWebsite(domain: string): Promise<{
         isEnterprise,
         engineUsed
     };
+
+    // Cache scraped result for 24 hours to preserve credits
+    setCachedDomainScrape(domain, finalResult);
+
+    return finalResult;
 }
 
 export async function POST(req: NextRequest) {
     const startTime = Date.now();
+
+    // Client IP Rate Limiting Check
+    const forwardedHeader = req.headers.get("x-forwarded-for");
+    const clientIp = forwardedHeader ? forwardedHeader.split(",")[0].trim() : req.headers.get("x-real-ip") || "127.0.0.1";
+    const rateCheck = checkRateLimit(clientIp);
+
     let body: any = {};
     try {
         body = await req.json();
@@ -208,6 +233,18 @@ export async function POST(req: NextRequest) {
             }
 
             try {
+                // Rate Limiting Enforcement
+                if (!rateCheck.allowed) {
+                    pushEvent({
+                        step: 1,
+                        time_ms: 15,
+                        status: "RATE_LIMITED",
+                        log: `[Rate Limit] Demo threshold exceeded (15/hr for IP ${clientIp}). Please sign in for unrestricted access.`
+                    });
+                    controller.close();
+                    return;
+                }
+
                 // STEP 1: Edge Gateway Initialized
                 const t1 = Date.now() - startTime;
                 pushEvent({

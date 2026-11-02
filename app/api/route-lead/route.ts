@@ -113,11 +113,11 @@ export async function POST(req: Request) {
                 };
             } else {
                 assignedMember = {
-                    name: "Sarah Jenkins",
-                    title: "Senior Enterprise Architect & AE (Americas)",
-                    email: "sarah.jenkins@flowmeet.ai",
-                    calendar_url: "https://flowmeet.ai/calendar/sarah-vip-15m",
-                    territory: "Americas HQ (San Francisco / NY)",
+                    name: "Yusuf Abubakar",
+                    title: "Founder & Lead Systems Architect (Americas & Global)",
+                    email: "yusuf@yusufsaka.dev",
+                    calendar_url: "https://cal.com/yusuf-abubakar/15min",
+                    territory: "Executive Strategic (Americas & Global)",
                     response_time_ms: 40,
                 };
             }

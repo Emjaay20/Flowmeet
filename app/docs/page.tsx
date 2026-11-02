@@ -18,7 +18,8 @@ import {
     Building2, 
     UserCheck,
     Cpu,
-    ExternalLink
+    ExternalLink,
+    Sparkles
 } from "lucide-react";
 
 export default function DocsPage() {
@@ -96,7 +97,10 @@ export default function DocsPage() {
                                 03. Chili Piper Equivalence
                             </a>
                             <a href="#adr-004" className="block text-zinc-600 hover:text-zinc-950 hover:underline">
-                                04. Marketing Automation Hooks
+                                04. Firecrawl &amp; 24h Caching
+                            </a>
+                            <a href="#adr-005" className="block text-zinc-600 hover:text-zinc-950 hover:underline">
+                                05. Clay, HubSpot &amp; GA4 Stack
                             </a>
                             <a href="#live-tester" className="block text-emerald-700 font-bold hover:underline">
                                 → Live Salesforce REST Tester
@@ -283,11 +287,57 @@ END:VCALENDAR`}
 
                                 <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
                                     <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
-                                        <span className="font-mono font-bold text-zinc-900">Luminovo-Style RAG Triage</span>
-                                        <span className="font-mono text-[10px] text-indigo-700 font-bold bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">FastAPI :8083</span>
+                                        <span className="font-mono font-bold text-zinc-900">Credit Protection &amp; 24h Cache</span>
+                                        <span className="font-mono text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Zero Waste</span>
                                     </div>
                                     <p className="text-zinc-600">
-                                        Modeled after Luminovo&apos;s FinAI / Lumi technical enablement engine. Matches incoming prospect questions against company documentation vector embeddings in Supabase (pgvector) to auto-answer technical RFPs and deflect non-revenue tickets.
+                                        To protect Firecrawl credits and avoid repeat billing, Flowmeet implements an in-memory 24-hour domain cache alongside client IP rate limiting (15 req/hr), ensuring popular showcase domains (Stripe, Linear, Automattic, Cal.com) never consume redundant API units.
+                                    </p>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* ADR 005: Multi-CRM & Waterfall Stack (Clay, HubSpot, GA4) */}
+                        <section id="adr-005" className="bg-white rounded-3xl border border-zinc-200/90 shadow-sm p-6 sm:p-10 space-y-6">
+                            <div className="flex items-center gap-2 text-xs font-mono text-zinc-500 pb-2 border-b border-zinc-100">
+                                <Sparkles className="w-4 h-4 text-zinc-900" />
+                                <span className="font-bold text-zinc-950">ADR-005</span> • CLAY, HUBSPOT &amp; GA4 ENGINE
+                            </div>
+                            <h2 className="font-editorial text-3xl sm:text-4xl font-normal text-zinc-950 tracking-tight">
+                                Clay Waterfall Enrichment &amp; Free CRM Orchestration
+                            </h2>
+                            <p className="text-sm text-zinc-600 leading-relaxed font-sans">
+                                Flowmeet operates as a revenue orchestration nexus, connecting top-of-funnel inbound capture to enterprise CRMs, waterfall data providers, and marketing measurement pipelines:
+                            </p>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-sans">
+                                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
+                                    <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
+                                        <span className="font-mono font-bold text-zinc-900">Clay.com Waterfall</span>
+                                        <span className="font-mono text-[10px] text-indigo-700 font-bold bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">POST /api/integrations/clay</span>
+                                    </div>
+                                    <p className="text-zinc-600">
+                                        Outbound dispatch to Clay table webhooks when high-value accounts arrive, and inbound webhook receiving enriched signals (revenue, funding stage, LinkedIn, headcount) to update Supabase and CRM records.
+                                    </p>
+                                </div>
+
+                                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
+                                    <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
+                                        <span className="font-mono font-bold text-zinc-900">HubSpot Free CRM API</span>
+                                        <span className="font-mono text-[10px] text-orange-700 font-bold bg-orange-50 px-2 py-0.5 rounded border border-orange-200">REST v3</span>
+                                    </div>
+                                    <p className="text-zinc-600">
+                                        Auto-creates or updates contacts via <code className="font-mono text-zinc-800">/crm/v3/objects/contacts</code> and creates inbound Deals at <code className="font-mono text-zinc-800">appointmentscheduled</code> stage with zero monthly software cost.
+                                    </p>
+                                </div>
+
+                                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
+                                    <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
+                                        <span className="font-mono font-bold text-zinc-900">GA4 Server Measurement</span>
+                                        <span className="font-mono text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">AdBlock Immune</span>
+                                    </div>
+                                    <p className="text-zinc-600">
+                                        Fires server-to-server conversion events (<code className="font-mono text-zinc-800">book_meeting</code> with estimated ARR value) directly to Google Analytics 4, bypassing client-side ad-blockers and privacy shields.
                                     </p>
                                 </div>
                             </div>

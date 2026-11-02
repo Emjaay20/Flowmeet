@@ -55,11 +55,11 @@ func EvaluateRoute(req *RouteRequest) *RouteResult {
 		} else {
 			// Default Americas / North America / Global
 			assigned = &AssignedMember{
-				Name:           "Sarah Jenkins",
-				Title:          "Senior Enterprise Architect & AE (Americas)",
-				Email:          "sarah.jenkins@flowmeet.ai",
-				CalendarURL:    "https://flowmeet.ai/calendar/sarah-vip-15m",
-				Territory:      "Americas HQ (San Francisco / NY)",
+				Name:           "Yusuf Abubakar",
+				Title:          "Founder & Lead Systems Architect",
+				Email:          "yusuf@yusufsaka.dev",
+				CalendarURL:    "https://cal.com/yusuf-abubakar/15min",
+				Territory:      "Executive Strategic (Americas & Global)",
 				ResponseTimeMs: 40,
 			}
 		}

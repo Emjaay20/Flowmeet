@@ -32,7 +32,7 @@ When a lead arrives, the Go engine automatically computes an **ICP Qualification
 The engine automatically parses lead regional data and assigns Account Executive ownership to prevent territory conflict:
 - **EMEA & Europe (`Europe`, `Germany`, `UK`, `Africa`):** Routes to *Elena Rostova (EMEA Strategic HQ - Munich/London)*.
 - **APAC & Asia (`APAC`, `Singapore`, `Tokyo`, `Australia`):** Routes to *Marcus Tan (APAC Enterprise Engineering)*.
-- **Americas / Global:** Routes to *Sarah Jenkins (Americas HQ - San Francisco/NY)*.
+- **Americas / Global:** Routes to *Yusuf Abubakar (Lead Systems Architect & Founder)*.
 
 ---
 

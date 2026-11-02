@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { matchOrCreateSalesforceRecord, createSalesforceEvent } from "@/app/lib/salesforce";
+import { syncLeadToHubSpot } from "@/app/lib/hubspot";
+import { triggerClayEnrichment } from "@/app/lib/clay";
+import { trackServerEvent } from "@/app/lib/analytics";
 
 export const runtime = "nodejs";
 
 const resend = new Resend(process.env.RESEND_API_KEY || "re_test_mock_secret");
-const fromEmail = process.env.EMAIL_FROM || "Yusuf Abubakar <yusuf@yusufsaka.dev>";
+const fromEmail = process.env.EMAIL_FROM || "Flowmeet Concierge <meetings@yusufsaka.dev>";
 const adminEmail = process.env.ADMIN_EMAIL || "yusuf@yusufsaka.dev";
 
 function generateIcs(summary: string, description: string, location: string, slotText: string) {
@@ -193,6 +196,54 @@ export async function POST(req: NextRequest) {
             console.warn("Salesforce sync error in book-slot:", sfErr);
         }
 
+        // 4. Sync to HubSpot Free CRM
+        let hubspotSync: any = null;
+        try {
+            hubspotSync = await syncLeadToHubSpot({
+                email,
+                company,
+                domain,
+                icpScore,
+                dealARR: 65000,
+                meetingSlot: slot
+            });
+        } catch (hsErr) {
+            console.warn("HubSpot sync error in book-slot:", hsErr);
+        }
+
+        // 5. Trigger Clay Waterfall Enrichment Webhook
+        let claySync: any = null;
+        try {
+            claySync = await triggerClayEnrichment({
+                email,
+                domain,
+                company,
+                icpScore,
+                source: "flowmeet_demo_modal"
+            });
+        } catch (clayErr) {
+            console.warn("Clay enrichment dispatch error:", clayErr);
+        }
+
+        // 6. Server-side Google Analytics 4 (GA4) Conversion Event
+        try {
+            await trackServerEvent({
+                name: "book_meeting",
+                params: {
+                    lead_email: email,
+                    company,
+                    domain,
+                    icp_score: icpScore,
+                    value: 65000,
+                    currency: "USD",
+                    meeting_slot: slot,
+                    rep_assigned: repName
+                }
+            });
+        } catch (gaErr) {
+            console.warn("GA4 event dispatch notice:", gaErr);
+        }
+
         return NextResponse.json({
             success: true,
             id: prospectEmail.data?.id,
@@ -202,7 +253,10 @@ export async function POST(req: NextRequest) {
             salesforce: {
                 leadOrAccount: sfdcLeadSync,
                 event: sfdcEventSync
-            }
+            },
+            hubspot: hubspotSync,
+            clay: claySync,
+            ga4: { tracked: true }
         });
 
     } catch (err: any) {
