@@ -48,7 +48,7 @@ async function fetchLiveWebsite(domain: string): Promise<{
     if (firecrawlKey) {
         try {
             const fcController = new AbortController();
-            const fcTimeout = setTimeout(() => fcController.abort(), 6000);
+            const fcTimeout = setTimeout(() => fcController.abort(), 8000);
 
             const fcRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
                 method: "POST",
@@ -224,7 +224,7 @@ export async function POST(req: NextRequest) {
                     step: 2,
                     time_ms: Date.now() - startTime,
                     status: "SCRAPING_DOM",
-                    log: `[${Date.now() - startTime}ms] Live Crawler: Scraping DOM & DNS signals from https://${domain}...`
+                    log: `[${Date.now() - startTime}ms] ${process.env.FIRECRAWL_API_KEY ? "Firecrawl Engine" : "Live Crawler"}: Scraping DOM & DNS signals from https://${domain}...`
                 });
 
                 const websiteData = isFreeMail
