@@ -72,17 +72,7 @@ export async function POST(req: Request) {
             }
         }
 
-        // Fallback: If still no workspace, use the first available one (Safety Net)
-        if (!workspace_id) {
-            const { data: workspaceData } = await supabase
-                .from('workspaces')
-                .select('id')
-                .limit(1)
-                .single();
-            if (workspaceData) {
-                workspace_id = workspaceData.id;
-            }
-        }
+        if (!workspace_id) return NextResponse.json({error:"Ingest workspace not configured"},{status:503});
 
         // 3. AI Scoring
         const { score, reason } = scoreLeadAI({

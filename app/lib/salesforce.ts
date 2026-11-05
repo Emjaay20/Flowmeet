@@ -42,23 +42,27 @@ export async function getSalesforceAccessToken(): Promise<{ accessToken: string;
         return { accessToken: cachedToken, instanceUrl: cachedInstanceUrl };
     }
 
-    if (!clientId || !clientSecret || !username || !password) {
+    const grantType = process.env.SALESFORCE_GRANT_TYPE || "client_credentials";
+    if (!clientId || !clientSecret || (grantType === "password" && (!username || !password))) {
         return null;
     }
 
     try {
         const params = new URLSearchParams();
-        params.append("grant_type", "password");
+        params.append("grant_type", grantType);
         params.append("client_id", clientId);
         params.append("client_secret", clientSecret);
-        params.append("username", username);
-        params.append("password", password);
+        if (grantType === "password") {
+            params.append("username", username!);
+            params.append("password", password!);
+        }
 
         const res = await fetch(`${loginUrl}/services/oauth2/token`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/x-www-form-urlencoded"
             },
+            signal: AbortSignal.timeout(8000),
             body: params.toString()
         });
 
@@ -126,7 +130,8 @@ export interface SalesforceSyncResult {
  */
 export async function matchOrCreateSalesforceRecord(lead: SalesforceLeadPayload): Promise<SalesforceSyncResult> {
     const startTime = Date.now();
-    const soqlAccountMatch = `SELECT Id, Name, OwnerId FROM Account WHERE Website LIKE '%${lead.domain}%' OR Name = '${lead.company}' LIMIT 1`;
+    const escape = (value: string) => value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    const soqlAccountMatch = `SELECT Id, Name, OwnerId FROM Account WHERE Website LIKE '%${escape(lead.domain)}%' OR Name = '${escape(lead.company)}' LIMIT 1`;
 
     const auth = await getSalesforceAccessToken();
 
@@ -182,7 +187,7 @@ export async function matchOrCreateSalesforceRecord(lead: SalesforceLeadPayload)
                     sfdcRecordId: leadData.id,
                     objectType: "Lead",
                     action: "CREATED",
-                    assignedOwnerId: "0058Z000008xX4KQAU",
+                    assignedOwnerId: "",
                     soqlQueryExecuted: soqlAccountMatch,
                     latencyMs: Date.now() - startTime,
                     status: "LIVE_SALESFORCE_SYNCED"
@@ -193,17 +198,7 @@ export async function matchOrCreateSalesforceRecord(lead: SalesforceLeadPayload)
         }
     }
 
-    // Default standby record generator when Salesforce credentials are being provisioned
-    const isTarget = ["stripe.com", "linear.app", "github.com", "yusufsaka.dev"].includes(lead.domain.toLowerCase());
-    return {
-        sfdcRecordId: isTarget ? "0018Z00003A4xK1QAJ" : "00Q8Z000021rY7UQAU",
-        objectType: isTarget ? "Account" : "Lead",
-        action: isTarget ? "MATCHED" : "CREATED",
-        assignedOwnerId: isTarget ? "0058Z000009yY4KQAU (Account Owner)" : "0058Z000008xX4KQAU (Round Robin)",
-        soqlQueryExecuted: soqlAccountMatch,
-        latencyMs: Math.floor(Math.random() * 20 + 14),
-        status: "STANDBY_READY"
-    };
+    throw new Error(auth ? "Salesforce sync failed" : "Salesforce is not configured");
 }
 
 /**
@@ -251,12 +246,5 @@ export async function createSalesforceEvent(eventData: SalesforceEventPayload): 
         }
     }
 
-    return {
-        sfdcRecordId: "00U8Z000005aB2zQAE",
-        objectType: "Event",
-        action: "CREATED",
-        assignedOwnerId: eventData.ownerId,
-        latencyMs: Math.floor(Math.random() * 15 + 12),
-        status: "STANDBY_READY"
-    };
+    throw new Error(auth ? "Salesforce event sync failed" : "Salesforce is not configured");
 }

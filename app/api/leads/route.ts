@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { createClient as createSessionClient } from "@/app/lib/supabase/server";
 import { scoreLeadAI } from '@/app/lib/ai/leadscorer'
 import { sendEmail } from "@/app/lib/email";
 import { tenantLeadEmail } from "@/app/lib/emails/tenantLeadNotification";
@@ -54,10 +55,15 @@ export async function POST(req: Request) {
             if (!workspace_id) {
                 return NextResponse.json({ error: "Invalid API Key" }, { status: 401 });
             }
-        } else if (userId) {
-            // Fallback: Use userId (Demo Mode)
-            workspace_id = await getWorkspaceId(userId);
+        } else {
+            const client = await createSessionClient();
+            const {data: {user}} = await client.auth.getUser();
+            if (!user) return NextResponse.json({error:"Unauthorized"}, {status:401});
+            workspace_id = await getWorkspaceId(user.id);
         }
+        if (!workspace_id) return NextResponse.json({error:"Workspace not found"}, {status:403});
+        if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+            return NextResponse.json({error:"Valid email required"}, {status:400});
 
         // 1.5 Fetch Workspace Settings (for Enrichment)
         let clayEnabled = false;
@@ -74,31 +80,8 @@ export async function POST(req: Request) {
             }
         }
 
-        // 2. Enrichment (Clay Integration)
-        let enrichedData = {};
-        if (clayEnabled) {
-            if (clayApiKey) {
-                // TODO: Call Real Clay API
-                console.log("Calling Clay API with key:", clayApiKey);
-            } else {
-                // Mock Mode (Simulation)
-                console.log("Simulating Clay Enrichment...");
-                enrichedData = {
-                    revenue: "$50M+",
-                    employees: "500-1000",
-                    linkedin: company ? `https://linkedin.com/company/${company}` : null
-                };
-            }
-        }
-
-        // 3. AI Scoring
-        let { score, reason } = scoreLeadAI({ role, company, region })
-
-        // BOOST Score if Enriched
-        if (clayEnabled && (enrichedData as any).revenue === "$50M+") {
-            score = Math.min(score + 0.3, 0.99); // Boost score
-            reason += ", Enriched: High Revenue ($50M+)";
-        }
+        // Missing enrichment remains unknown; scoring uses supplied information only.
+        const { score, reason } = scoreLeadAI({ role, company, region });
 
         // 3. Qualification Logic
         const isQualifiedRole = role?.toLowerCase().match(/manager|head|director|founder/)
@@ -115,7 +98,7 @@ export async function POST(req: Request) {
                 .single();
 
             // Use Custom Link or Fallback
-            bookingUrl = workspaceData?.booking_url || 'https://calendly.com/yourname/demo-call';
+            bookingUrl = workspaceData?.booking_url || null;
         }
 
         // 5. Send Emails (if qualified)

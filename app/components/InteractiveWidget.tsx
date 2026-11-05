@@ -117,54 +117,18 @@ export default function InteractiveWidget() {
     const handleConfirmBooking = async (slot: string) => {
         setBookedSlot(slot);
         setBookingSending(true);
-
-        setLogs((prev) => [
-            ...prev,
-            { time_ms: 850, text: `[Resend Dispatch] Connecting to mail gateway for ${emailInput}...`, type: "accent" }
-        ]);
-
+        setBookingSuccess(false);
         try {
             const res = await fetch("/api/book-slot", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    email: emailInput,
-                    slot,
-                    repName: streamedPayload?.assigned_ae?.name || "Yusuf Abubakar",
-                    repTitle: streamedPayload?.assigned_ae?.title || "Founder & Lead Systems Architect",
-                    repEmail: streamedPayload?.assigned_ae?.email || "yusuf@yusufsaka.dev",
-                    company: streamedPayload?.company || "Strategic Lead",
-                    domain: streamedPayload?.domain || "prospect.com",
-                    icpScore: streamedPayload?.icp_score || 99
-                })
+                method: "POST", headers: {"Content-Type":"application/json"},
+                body: JSON.stringify({email: emailInput})
             });
-
             const data = await res.json();
-            if (res.ok && data.success) {
-                setBookingSuccess(true);
-                setLogs((prev) => [
-                    ...prev,
-                    { time_ms: 980, text: `✓ [Email Delivered] Real calendar invite (.ics) dispatched to ${emailInput} via Resend (${data.id || "verified"})`, type: "success" },
-                    { time_ms: 1050, text: `✓ [Salesforce CRM] Synced ${data.salesforce?.leadOrAccount?.objectType || "Lead"} & Event (${data.salesforce?.leadOrAccount?.sfdcRecordId || "SFDC-Live"})`, type: "success" },
-                    { time_ms: 1110, text: `✓ [HubSpot CRM] ${data.hubspot?.synced ? `Upserted Contact (${data.hubspot.contactId}) & Inbound Deal` : "Contact pipeline primed (Free tier ready)"}`, type: "accent" },
-                    { time_ms: 1180, text: `✓ [Clay & GA4] Waterfall enrichment payload dispatched • Server-side conversion logged ($65,000 ARR)`, type: "accent" }
-                ]);
-            } else {
-                setBookingSuccess(true);
-                setLogs((prev) => [
-                    ...prev,
-                    { time_ms: 1050, text: `[Cal.com Handoff] Meeting confirmed for slot: "${slot}". Calendar invite dispatched to ${emailInput}!`, type: "success" }
-                ]);
-            }
-        } catch {
-            setBookingSuccess(true);
-            setLogs((prev) => [
-                ...prev,
-                { time_ms: 1050, text: `[Cal.com Handoff] Meeting confirmed for slot: "${slot}". Calendar invite dispatched to ${emailInput}!`, type: "success" }
-            ]);
-        } finally {
-            setBookingSending(false);
-        }
+            if (!res.ok || !data.bookingUrl) throw new Error(data.error || "Calendar unavailable");
+            window.location.assign(data.bookingUrl);
+        } catch (err) {
+            setLogs(prev => [...prev, {time_ms: 0, text: err instanceof Error ? err.message : "Booking failed. No meeting was confirmed.", type:"warn"}]);
+        } finally { setBookingSending(false); }
     };
 
     const handleSelectChip = (chip: string) => {
@@ -384,7 +348,7 @@ export default function InteractiveWidget() {
                                             {!bookingSuccess ? (
                                                 <div>
                                                     <p className="text-[11px] text-zinc-400 mb-2 font-mono">
-                                                        Select available Cal.com slot with assigned AE:
+                                                        Continue to the calendar provider to choose an available time:
                                                     </p>
                                                     <div className="flex flex-wrap gap-2">
                                                         {streamedPayload.assigned_ae?.booking_slots?.map((slot: string) => (
@@ -400,7 +364,7 @@ export default function InteractiveWidget() {
                                                                 ) : (
                                                                     <Clock className="w-3 h-3" />
                                                                 )}
-                                                                <span>{bookingSending && bookedSlot === slot ? "Dispatching Invite..." : slot}</span>
+                                                                <span>{bookingSending && bookedSlot === slot ? "Opening calendar..." : slot}</span>
                                                             </button>
                                                         ))}
                                                     </div>

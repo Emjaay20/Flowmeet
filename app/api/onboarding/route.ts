@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
+import { createClient as createSessionClient } from "@/app/lib/supabase/server";
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,7 +10,13 @@ const supabase = createClient(
 
 export async function POST(req: Request) {
     try {
-        const { user_id, email } = await req.json();
+        const sessionClient = await createSessionClient();
+        const { data: { user } } = await sessionClient.auth.getUser();
+        if (!user || !user.email) return NextResponse.json({error:"Unauthorized"}, {status:401});
+        const user_id = user.id, email = user.email;
+        const {data: membership, error: membershipError} = await supabase.from("workspace_users").select("workspace_id").eq("user_id",user_id).limit(1);
+        if (membershipError) throw membershipError;
+        if (membership?.length) return NextResponse.json({success:true, workspace_id:membership[0].workspace_id});
 
         if (!user_id || !email) {
             return NextResponse.json(

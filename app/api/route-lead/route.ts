@@ -122,7 +122,7 @@ export async function POST(req: Request) {
                 };
             }
 
-            greeting = `Hello! Our Go rules engine recognized your high-intent enterprise profile at ${company} (${employees}+ team size). I have reserved an exclusive 15-minute technical architecture slot with ${assignedMember.name} (${assignedMember.title}) for tomorrow at 2:00 PM.`;
+            greeting = `Hello! Our Go rules engine recognized your high-intent enterprise profile at ${company} (${employees}+ team size). Continue to the calendar provider to view availability. No meeting has been reserved.`;
         } else if (icpScore >= 65) {
             tier = "COMMERCIAL_PRIORITY";
             action = "PRIORITY_DEMO_SCHEDULER";
@@ -155,7 +155,7 @@ export async function POST(req: Request) {
             {
                 success: true,
                 engine: "Next.js Edge Polyglot Rules Fallback (TypeScript)",
-                latency_ms: Date.now() - startTime + 42,
+                latency_ms: Date.now() - startTime,
                 data: {
                     status: 200,
                     lead_email: email,
@@ -166,9 +166,10 @@ export async function POST(req: Request) {
                     assigned_member: assignedMember,
                     automated_greeting: greeting,
                     estimated_deal_arr_usd: dealARR,
-                    execution_time_microseconds: 48,
+                    execution_time_microseconds: null,
                     timestamp: new Date().toISOString(),
-                    worker_node: "vercel-edge-runtime-fallback-02",
+                    worker_node: "typescript-fallback",
+                    demo: true,
                 },
             },
             {

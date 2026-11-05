@@ -23,6 +23,8 @@ rsync -avz --delete \
   --exclude=".git" \
   --exclude="crawler/target" \
   --exclude=".DS_Store" \
+  --exclude="._*" \
+  --exclude=".env.integrations" \
   ./ $SERVER_HOST:$REMOTE_DIR/
 
 # 3. Build & Orchestrate on Server

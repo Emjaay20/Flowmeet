@@ -28,10 +28,60 @@ export default function DocsPage() {
     const [sfResult, setSfResult] = useState<any>(null);
     const [selectedCompany, setSelectedCompany] = useState<"stripe" | "linear" | "acme">("stripe");
 
+    const [n8nPreset, setN8nPreset] = useState<"enterprise_hitl" | "commercial_auto" | "low_rag_hitl">("enterprise_hitl");
+    const [n8nLoading, setN8nLoading] = useState(false);
+    const [n8nResult, setN8nResult] = useState<any>(null);
+
     const handleCopy = (text: string, id: string) => {
         navigator.clipboard.writeText(text);
         setCopiedIndex(id);
         setTimeout(() => setCopiedIndex(null), 2000);
+    };
+
+    const handleTestN8nOrchestrator = async () => {
+        setN8nLoading(true);
+        try {
+            const payloads = {
+                enterprise_hitl: {
+                    name: "Alex Rivera",
+                    email: "vp_architecture@stripe.com",
+                    company: "Stripe",
+                    role: "VP Engineering",
+                    region: "Americas",
+                    employees: 3500,
+                    query: "How do I configure SAML 2.0 single sign-on for Okta?"
+                },
+                commercial_auto: {
+                    name: "Devon Lindqvist",
+                    email: "eng@linear.app",
+                    company: "Linear",
+                    role: "Software Engineer",
+                    region: "Americas",
+                    employees: 120,
+                    query: "What are the Nginx API rate limits and burst buffers?"
+                },
+                low_rag_hitl: {
+                    name: "Devon Lindqvist",
+                    email: "eng@linear.app",
+                    company: "Linear",
+                    role: "Software Engineer",
+                    region: "Americas",
+                    employees: 120,
+                    query: "Do you support mainframes running COBOL over AS/400 token rings?"
+                }
+            };
+            const res = await fetch("/api/n8n-orchestrate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payloads[n8nPreset])
+            });
+            const data = await res.json();
+            setN8nResult(data);
+        } catch (err: any) {
+            console.error("n8n orchestrator error:", err);
+        } finally {
+            setN8nLoading(false);
+        }
     };
 
     const handleTestSalesforce = async () => {
@@ -101,6 +151,12 @@ export default function DocsPage() {
                             </a>
                             <a href="#adr-005" className="block text-zinc-600 hover:text-zinc-950 hover:underline">
                                 05. Clay, HubSpot &amp; GA4 Stack
+                            </a>
+                            <a href="#adr-006" className="block text-zinc-600 hover:text-zinc-950 hover:underline">
+                                06. n8n Polyglot Orchestrator
+                            </a>
+                            <a href="#n8n-tester" className="block text-emerald-700 font-bold hover:underline">
+                                → Live n8n Orchestrator Tester
                             </a>
                             <a href="#live-tester" className="block text-emerald-700 font-bold hover:underline">
                                 → Live Salesforce REST Tester
@@ -341,6 +397,207 @@ END:VCALENDAR`}
                                     </p>
                                 </div>
                             </div>
+                        </section>
+
+                        {/* ADR 006: n8n Polyglot Revenue & Technical Triage Orchestrator */}
+                        <section id="adr-006" className="bg-white rounded-3xl border border-zinc-200/90 shadow-sm p-6 sm:p-10 space-y-6">
+                            <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-zinc-500 pb-2 border-b border-zinc-100">
+                                <div className="flex items-center gap-2">
+                                    <GitBranch className="w-4 h-4 text-zinc-900" />
+                                    <span className="font-bold text-zinc-950">ADR-006</span> • AUTONOMOUS n8n POLYGLOT ORCHESTRATION
+                                </div>
+                                <a
+                                    href="/workflows/polyglot-revenue-orchestrator.json"
+                                    download="polyglot-revenue-orchestrator.json"
+                                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-950 text-[#c8f944] font-mono text-[11px] font-bold hover:bg-zinc-800 transition-all"
+                                >
+                                    <span>Download n8n Workflow (.json)</span>
+                                    <ExternalLink className="w-3 h-3" />
+                                </a>
+                            </div>
+                            <h2 className="font-editorial text-3xl sm:text-4xl font-normal text-zinc-950 tracking-tight">
+                                Parallel Polyglot Fan-Out &amp; Hallucination Circuit Breaker (n8n)
+                            </h2>
+                            <p className="text-sm text-zinc-600 leading-relaxed font-sans">
+                                Rather than relying on slow, ungrounded LLM chains, Flowmeet&apos;s production n8n workflow (<code className="text-xs font-mono bg-zinc-100 px-1.5 py-0.5 rounded text-zinc-900">n8n/polyglot-revenue-orchestrator.json</code>) executes deterministic systems microservices in parallel before synthesizing outreach and enforcing an ARR + RAG confidence circuit breaker:
+                            </p>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-sans">
+                                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
+                                    <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
+                                        <span className="font-mono font-bold text-zinc-900">1. Parallel Fan-Out</span>
+                                        <span className="font-mono text-[10px] text-orange-700 font-bold bg-orange-50 px-2 py-0.5 rounded border border-orange-200">Rust + Python</span>
+                                    </div>
+                                    <p className="text-zinc-600">
+                                        Webhook trigger fans out concurrently to <code className="font-mono text-zinc-800">/api/scrape</code> (Rust Axum DOM-to-Markdown + tech stack) and <code className="font-mono text-zinc-800">/api/ai-brain</code> (Python FastAPI semantic vector RAG).
+                                    </p>
+                                </div>
+
+                                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
+                                    <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
+                                        <span className="font-mono font-bold text-zinc-900">2. 22µs Territory Lock</span>
+                                        <span className="font-mono text-[10px] text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-200">Go 1.22</span>
+                                    </div>
+                                    <p className="text-zinc-600">
+                                        Rust firmographics pipe directly into <code className="font-mono text-zinc-800">/api/route-lead</code>, where Go goroutines compute ICP score, deal ARR tier, and lock the regional Cal.com slot.
+                                    </p>
+                                </div>
+
+                                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
+                                    <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
+                                        <span className="font-mono font-bold text-zinc-900">3. Circuit Breaker</span>
+                                        <span className="font-mono text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">ARR + RAG Guard</span>
+                                    </div>
+                                    <p className="text-zinc-600">
+                                        If <code className="font-mono text-zinc-800">ARR &gt;= $65k</code> OR <code className="font-mono text-zinc-800">RAG Confidence &lt; 85%</code>, the workflow halts auto-send and escalates a 1-click HITL approval payload to the founder.
+                                    </p>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Interactive Live n8n Polyglot Orchestrator Simulator */}
+                        <section id="n8n-tester" className="bg-zinc-950 text-white rounded-3xl border border-zinc-800 shadow-xl p-6 sm:p-10 space-y-6">
+                            <div className="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-zinc-800">
+                                <div className="flex items-center gap-2">
+                                    <Layers className="w-5 h-5 text-[#c8f944]" />
+                                    <h3 className="font-mono text-sm font-bold text-white uppercase tracking-wider">
+                                        LIVE n8n POLYGLOT ORCHESTRATOR &amp; CIRCUIT BREAKER TESTER
+                                    </h3>
+                                </div>
+                                <span className="px-2.5 py-0.5 rounded-full bg-zinc-800 text-[10px] font-mono text-[#c8f944] border border-zinc-700">
+                                    POST /api/n8n-orchestrate
+                                </span>
+                            </div>
+
+                            <p className="text-xs text-zinc-400 font-sans">
+                                Execute the 8-node n8n orchestration graph live across Rust (<code className="text-zinc-200">:8081</code>), Go (<code className="text-zinc-200">:8082</code>), Python RAG (<code className="text-zinc-200">:8083</code>), and Supabase audit ingestion:
+                            </p>
+
+                            <div className="flex flex-wrap items-center gap-3">
+                                <span className="text-xs font-mono text-zinc-400">Select Orchestration Scenario:</span>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setN8nPreset("enterprise_hitl");
+                                        setN8nResult(null);
+                                    }}
+                                    className={`px-3 py-1.5 rounded-xl text-xs font-mono border transition-all cursor-pointer ${
+                                        n8nPreset === "enterprise_hitl"
+                                            ? "bg-[#c8f944] text-zinc-950 font-bold border-[#c8f944]"
+                                            : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
+                                    }`}
+                                >
+                                    STRIPE ($65K VIP → HITL CIRCUIT BREAKER)
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setN8nPreset("commercial_auto");
+                                        setN8nResult(null);
+                                    }}
+                                    className={`px-3 py-1.5 rounded-xl text-xs font-mono border transition-all cursor-pointer ${
+                                        n8nPreset === "commercial_auto"
+                                            ? "bg-[#c8f944] text-zinc-950 font-bold border-[#c8f944]"
+                                            : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
+                                    }`}
+                                >
+                                    LINEAR ($24K COMMERCIAL → ZERO-TOUCH AUTO)
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setN8nPreset("low_rag_hitl");
+                                        setN8nResult(null);
+                                    }}
+                                    className={`px-3 py-1.5 rounded-xl text-xs font-mono border transition-all cursor-pointer ${
+                                        n8nPreset === "low_rag_hitl"
+                                            ? "bg-[#c8f944] text-zinc-950 font-bold border-[#c8f944]"
+                                            : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
+                                    }`}
+                                >
+                                    LOW RAG CONFIDENCE (19.4% → HALLUCINATION BREAKER)
+                                </button>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-3">
+                                <button
+                                    type="button"
+                                    onClick={handleTestN8nOrchestrator}
+                                    disabled={n8nLoading}
+                                    className="w-full sm:w-auto px-6 py-3 rounded-full bg-[#c8f944] hover:bg-[#b5e635] text-zinc-950 font-bold text-xs font-mono flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                                >
+                                    {n8nLoading ? (
+                                        <>
+                                            <RefreshCw className="w-4 h-4 animate-spin text-zinc-950" />
+                                            <span>Running Parallel Rust + Python + Go Nodes...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span>Execute 8-Node Polyglot Workflow</span>
+                                            <ArrowRight className="w-4 h-4 text-zinc-950" />
+                                        </>
+                                    )}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        handleCopy(
+                                            `curl -s -X POST https://flowmeet.aetherhost.com.ng/api/n8n-orchestrate -H "Content-Type: application/json" -d '{"name":"Alex Rivera","email":"vp_architecture@stripe.com","company":"Stripe","role":"VP Engineering","employees":3500,"query":"How do I configure SAML 2.0 single sign-on for Okta?"}'`,
+                                            "n8n-curl"
+                                        )
+                                    }
+                                    className="px-4 py-3 rounded-full bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-700 text-xs font-mono flex items-center gap-2 transition-all cursor-pointer"
+                                >
+                                    {copiedIndex === "n8n-curl" ? (
+                                        <>
+                                            <Check className="w-3.5 h-3.5 text-[#c8f944]" />
+                                            <span className="text-[#c8f944]">Copied cURL!</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Copy className="w-3.5 h-3.5" />
+                                            <span>Copy cURL Test Command</span>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+
+                            {n8nResult && (
+                                <div className="mt-4 space-y-4">
+                                    {/* Node Execution Trace */}
+                                    <div className="rounded-2xl bg-zinc-900 p-4 border border-zinc-800 font-mono text-xs space-y-2.5">
+                                        <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-zinc-800 text-[10px] text-zinc-400">
+                                            <span className="text-[#c8f944] font-bold">
+                                                ✓ WORKFLOW TRACE • TOTAL PIPELINE: {n8nResult.total_orchestration_ms}ms
+                                            </span>
+                                            <span>
+                                                MODE: {n8nResult.payload?.circuit_breaker?.execution_mode}
+                                            </span>
+                                        </div>
+                                        {n8nResult.node_execution_trace?.map((node: any) => (
+                                            <div key={node.node_id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 py-1.5 border-b border-zinc-800/60 last:border-0">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                                                    <span className="text-white font-semibold">{node.name}</span>
+                                                </div>
+                                                <span className="text-[11px] text-zinc-400">{node.output_summary}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Synthesized Draft Output */}
+                                    <div className="rounded-2xl bg-zinc-900 p-4 border border-zinc-800 font-mono text-xs">
+                                        <div className="flex items-center justify-between pb-2 mb-2 border-b border-zinc-800 text-[10px] text-zinc-400">
+                                            <span className="text-emerald-400">GROUNDED AI SYNTHESIS (RUST + GO + PYTHON RAG)</span>
+                                            <span>ICP SCORE: {n8nResult.payload?.scoring_and_routing?.final_icp_score}/100</span>
+                                        </div>
+                                        <pre className="text-[11px] text-zinc-200 whitespace-pre-wrap leading-relaxed">
+                                            {n8nResult.payload?.synthesized_outreach_draft}
+                                        </pre>
+                                    </div>
+                                </div>
+                            )}
                         </section>
 
                         {/* Interactive Live Salesforce REST API Tester */}

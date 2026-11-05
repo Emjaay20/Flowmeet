@@ -64,7 +64,7 @@ async function fetchLiveWebsite(domain: string): Promise<{
             const fcController = new AbortController();
             const fcTimeout = setTimeout(() => fcController.abort(), 8000);
 
-            const fcRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
+            const fcRes = await fetch("https://api.firecrawl.dev/v2/scrape", {
                 method: "POST",
                 headers: {
                     "Authorization": `Bearer ${firecrawlKey}`,
@@ -214,13 +214,17 @@ export async function POST(req: NextRequest) {
         body = {};
     }
 
-    const email = (body.email || "demo@stripe.com").trim().toLowerCase();
+    if (typeof body.email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email))
+        return Response.json({error:"A valid email is required"},{status:400});
+    const email = body.email.trim().toLowerCase();
     const region = body.region || "Americas (San Francisco)";
     const role = body.role || "VP Engineering";
 
     // Extract domain
     const emailParts = email.split("@");
     const domain = emailParts.length > 1 ? emailParts[1] : email.replace(/^https?:\/\//, "").split("/")[0];
+    const allowed = (process.env.FLOWMEET_DEMO_DOMAINS || "stripe.com,github.com,yusufsaka.dev").split(",").map(v=>v.trim().toLowerCase());
+    if (!allowed.includes(domain)) return Response.json({error:"This public demonstration only crawls approved domains. Configure FLOWMEET_DEMO_DOMAINS for your pilot."},{status:403});
     const isFreeMail = FREE_WEBMAILS.has(domain);
     const companyGuess = isFreeMail ? "Independent Developer" : domain.split(".")[0].toUpperCase();
 
@@ -320,7 +324,7 @@ export async function POST(req: NextRequest) {
                     email: "ai.enablement@flowmeet.ai",
                     calendar_url: "https://flowmeet.ai/docs",
                     territory: "Global Cloud Edge",
-                    booking_slots: ["Instant API Access", "Interactive Sandbox", "Documentation"]
+                    booking_slots: ["View calendar availability"]
                 };
 
                 if (icpScore >= 80) {
@@ -336,7 +340,7 @@ export async function POST(req: NextRequest) {
                             email: "elena.rostova@flowmeet.ai",
                             calendar_url: "https://cal.com/elena-rostova-flowmeet/15min",
                             territory: "EMEA Strategic HQ (Munich / London)",
-                            booking_slots: ["Tomorrow 2:00 PM CET", "Tomorrow 4:30 PM CET", "Friday 11:00 AM CET"]
+                            booking_slots: ["View calendar availability"]
                         };
                     } else if (regionLower.includes("apac") || regionLower.includes("asia")) {
                         assignedAE = {
@@ -345,7 +349,7 @@ export async function POST(req: NextRequest) {
                             email: "marcus.tan@flowmeet.ai",
                             calendar_url: "https://cal.com/marcus-tan-flowmeet/15min",
                             territory: "APAC Strategic (Singapore / Tokyo)",
-                            booking_slots: ["Tomorrow 10:00 AM SGT", "Tomorrow 2:00 PM SGT", "Friday 3:30 PM SGT"]
+                            booking_slots: ["View calendar availability"]
                         };
                     } else {
                         assignedAE = {
@@ -354,7 +358,7 @@ export async function POST(req: NextRequest) {
                             email: "yusuf@yusufsaka.dev",
                             calendar_url: "https://cal.com/yusuf-abubakar/15min",
                             territory: "Executive Strategic (Americas & Global)",
-                            booking_slots: ["Tomorrow 11:00 AM EST", "Tomorrow 2:00 PM EST", "Friday 1:30 PM EST"]
+                            booking_slots: ["View calendar availability"]
                         };
                     }
                 } else if (icpScore >= 60) {
@@ -367,10 +371,19 @@ export async function POST(req: NextRequest) {
                         email: "alex.mercer@flowmeet.ai",
                         calendar_url: "https://cal.com/alex-mercer-flowmeet/30min",
                         territory: "Global Growth Tier",
-                        booking_slots: ["Tomorrow 1:00 PM", "Friday 10:30 AM", "Monday 2:00 PM"]
+                        booking_slots: ["View calendar availability"]
                     };
                 }
 
+                // Pilot routes to the configured owner; demonstration names never become bookings.
+                assignedAE = {
+                    name: process.env.FLOWMEET_REP_NAME || "AetherHost team",
+                    title: "Technical onboarding",
+                    email: process.env.FLOWMEET_REP_EMAIL || "",
+                    calendar_url: process.env.FLOWMEET_BOOKING_URL || "",
+                    territory: region,
+                    booking_slots: process.env.FLOWMEET_BOOKING_URL ? ["View calendar availability"] : []
+                };
                 const totalLatency = Date.now() - startTime;
                 pushEvent({
                     step: 5,
@@ -386,37 +399,21 @@ export async function POST(req: NextRequest) {
                         icp_score: icpScore,
                         tier,
                         action,
-                        estimated_deal_arr_usd: dealARR,
+                        estimated_deal_arr_usd: null,
                         tech_stack: websiteData.techStack,
                         is_enterprise: websiteData.isEnterprise,
                         assigned_ae: assignedAE,
                         token_count: tokenEstimate,
                         raw_markdown_snippet: websiteData.markdown.slice(0, 1200),
                         execution_time_ms: totalLatency,
-                        live_verified: true
+                        live_verified: false,
+                        scoring_method: "heuristic",
+                        source_url: `https://${domain}`,
+                        retrieved_at: new Date().toISOString()
                     }
                 });
 
-                // 5. Optionally record lead to Supabase
-                try {
-                    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
-                        await supabase.from("Lead").insert([
-                            {
-                                email,
-                                name: companyGuess + " Contact",
-                                company: companyGuess,
-                                role,
-                                status: tier === "VIP_ENTERPRISE_INSTANT" ? "Routed_VIP" : "Enriched",
-                                ai_score: icpScore,
-                                ai_reason: `Live enriched from ${domain}. Detected tech: ${websiteData.techStack.join(", ")}.`,
-                                region
-                            }
-                        ]);
-                    }
-                } catch {
-                    // Non-blocking for demo
-                }
-
+                // Public preview does not create unscoped customer records.
                 controller.close();
             } catch (err: any) {
                 pushEvent({

@@ -3,12 +3,18 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    env_file:
+      - .env
+      - .env.integrations
     container_name: flowmeet-web
     restart: unless-stopped
     mem_limit: 300m
     memswap_limit: 600m
     environment:
       NODE_ENV: production
+      FLOWMEET_BOOKING_URL: https://cal.com/yusuf-abubakar-cvy8ug/technical-discovery
+      FLOWMEET_REP_NAME: Yusuf Abubakar
+      CALCOM_EVENT_TYPE_ID: 7779843
       PORT: 3000
       NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-https://xfvvrqgdklymfubnbiyz.supabase.co}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-sb_publishable_0BNj-1kLBekuFHwY2Pg9zQ_PgAM3GeW}
@@ -17,6 +23,7 @@ services:
       RUST_CRAWLER_URL: http://flowmeet-crawler:8081
       GOLANG_CONCIERGE_URL: http://flowmeet-concierge:8082
       PYTHON_AI_BRAIN_URL: http://flowmeet-ai-brain:8083
+      N8N_INTERNAL_WEBHOOK_URL: http://flowmeet-n8n:5678/webhook/flowmeet-polyglot-triage
     ports:
       - "3000:3000"
     depends_on:
@@ -74,6 +81,43 @@ services:
       PYTHONUNBUFFERED: 1
     networks:
       - flowmeet-internal
+
+  flowmeet-n8n:
+    image: n8nio/n8n:latest
+    container_name: flowmeet-n8n
+    restart: unless-stopped
+    mem_limit: 1024m
+    memswap_limit: 1536m
+    env_file:
+      - .env
+      - .env.integrations
+    environment:
+      N8N_HOST: n8n.aetherhost.com.ng
+      N8N_PORT: 5678
+      N8N_PROTOCOL: https
+      WEBHOOK_URL: https://n8n.aetherhost.com.ng/
+      N8N_WEBHOOK_URL: https://n8n.aetherhost.com.ng/
+      N8N_PROXY_HOPS: "1"
+      NODE_OPTIONS: "--max-old-space-size=768"
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      FLOWMEET_INGEST_SECRET: ${FLOWMEET_INGEST_SECRET:-fm_live_x9k2m4p8q7w3_secure_ingest}
+      GENERIC_TIMEZONE: Africa/Lagos
+    volumes:
+      - flowmeet-n8n-data:/home/node/.n8n
+      - ./n8n:/workflows:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=aetherhost-net"
+      - "traefik.http.routers.flowmeet-n8n.rule=Host(`n8n.aetherhost.com.ng`) || Host(`flowmeet-n8n.aetherhost.com.ng`)"
+      - "traefik.http.routers.flowmeet-n8n.entrypoints=websecure"
+      - "traefik.http.routers.flowmeet-n8n.tls.certresolver=letsencrypt"
+      - "traefik.http.services.flowmeet-n8n.loadbalancer.server.port=5678"
+    networks:
+      - flowmeet-internal
+      - aetherhost-net
+
+volumes:
+  flowmeet-n8n-data:
 
 networks:
   flowmeet-internal:
