@@ -4,8 +4,10 @@ services:
       context: .
       dockerfile: Dockerfile
     env_file:
-      - .env
-      - .env.integrations
+      - path: .env
+        required: true
+      - path: .env.integrations
+        required: false
     container_name: flowmeet-web
     restart: unless-stopped
     mem_limit: 300m
@@ -89,8 +91,10 @@ services:
     mem_limit: 1024m
     memswap_limit: 1536m
     env_file:
-      - .env
-      - .env.integrations
+      - path: .env
+        required: true
+      - path: .env.integrations
+        required: false
     environment:
       N8N_HOST: n8n.aetherhost.com.ng
       N8N_PORT: 5678

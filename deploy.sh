@@ -13,7 +13,7 @@ echo "============================================================"
 
 # 1. Ensure remote directory exists
 echo "📁 [1/4] Preparing remote deployment directory..."
-ssh $SERVER_HOST "mkdir -p $REMOTE_DIR"
+ssh $SERVER_HOST "mkdir -p $REMOTE_DIR && touch $REMOTE_DIR/.env.integrations"
 
 # 2. Sync codebase
 echo "📦 [2/4] Syncing codebase via rsync..."
