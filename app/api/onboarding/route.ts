@@ -10,13 +10,41 @@ const supabase = createClient(
 
 export async function POST(req: Request) {
     try {
+        const body = await req.json().catch(() => ({}));
+        const reqUserId = body.user_id;
+        const reqEmail = body.email;
+
+        // 1. Try session client first
         const sessionClient = await createSessionClient();
-        const { data: { user } } = await sessionClient.auth.getUser();
-        if (!user || !user.email) return NextResponse.json({error:"Unauthorized"}, {status:401});
-        const user_id = user.id, email = user.email;
-        const {data: membership, error: membershipError} = await supabase.from("workspace_users").select("workspace_id").eq("user_id",user_id).limit(1);
+        const { data: { user: sessionUser } } = await sessionClient.auth.getUser();
+
+        let user_id = sessionUser?.id;
+        let email = sessionUser?.email;
+
+        // 2. If session cookie isn't present yet (e.g. freshly called right after client-side signUp)
+        if ((!user_id || !email) && reqUserId && reqEmail) {
+            const { data: adminData, error: adminErr } = await supabase.auth.admin.getUserById(reqUserId);
+            if (!adminErr && adminData?.user && adminData.user.email?.toLowerCase() === reqEmail.toLowerCase()) {
+                user_id = adminData.user.id;
+                email = adminData.user.email;
+            }
+        }
+
+        if (!user_id || !email) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        // Check if user already has a workspace
+        const { data: membership, error: membershipError } = await supabase
+            .from("workspace_users")
+            .select("workspace_id")
+            .eq("user_id", user_id)
+            .limit(1);
+
         if (membershipError) throw membershipError;
-        if (membership?.length) return NextResponse.json({success:true, workspace_id:membership[0].workspace_id});
+        if (membership?.length) {
+            return NextResponse.json({ success: true, workspace_id: membership[0].workspace_id });
+        }
 
         if (!user_id || !email) {
             return NextResponse.json(

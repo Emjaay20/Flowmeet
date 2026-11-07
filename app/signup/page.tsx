@@ -18,8 +18,9 @@ export default function SignupPage() {
         setLoading(true);
         setError(null);
 
+        const cleanEmail = email.trim().toLowerCase();
         const { data, error } = await supabase.auth.signUp({
-            email,
+            email: cleanEmail,
             password,
         });
 
@@ -29,14 +30,21 @@ export default function SignupPage() {
             return;
         }
 
+        // Supabase returns user with empty identities when email already exists (enumeration defense)
+        if (data.user && (!data.user.identities || data.user.identities.length === 0)) {
+            setError("An account with this email already exists. Please sign in instead.");
+            setLoading(false);
+            return;
+        }
+
         try {
-            // 🚀 Call onboarding
+            // Call onboarding to attach workspace & API key
             const res = await fetch("/api/onboarding", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     user_id: data.user?.id,
-                    email: data.user?.email,
+                    email: data.user?.email || cleanEmail,
                 }),
             });
 
@@ -46,7 +54,8 @@ export default function SignupPage() {
             }
 
             setLoading(false);
-            router.push("/dashboard"); // TODO: Verify dashboard route exists
+            router.refresh();
+            window.location.href = "/dashboard";
         } catch (err: any) {
             setError(err.message);
             setLoading(false);
@@ -103,8 +112,17 @@ export default function SignupPage() {
                     </div>
 
                     {error && (
-                        <div className="rounded-md bg-red-50 p-4 text-sm text-red-700">
-                            {error}
+                        <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-700 space-y-2">
+                            <p className="font-medium">{error}</p>
+                            {error.includes("already exists") && (
+                                <Link
+                                    href="/login"
+                                    className="inline-flex items-center gap-1.5 text-xs font-bold text-red-900 bg-red-100 hover:bg-red-200 px-3 py-1.5 rounded-md transition-colors"
+                                >
+                                    <span>Sign in to your account</span>
+                                    <span>&rarr;</span>
+                                </Link>
+                            )}
                         </div>
                     )}
 
