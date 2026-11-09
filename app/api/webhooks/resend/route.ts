@@ -15,7 +15,7 @@ const EVENT_STATUS_MAP: Record<string, string> = {
 };
 
 const processedSvixIds = new Set<string>();
-const lifecycleCounts: Record<string, number> = {
+const fallbackCounts: Record<string, number> = {
     SENT_TO_MTA: 0,
     DELIVERED_TO_MAILBOX: 0,
     DELIVERY_DELAYED: 0,
@@ -79,8 +79,45 @@ function verifySvixSignature(
 }
 
 export async function GET() {
+    const counts: Record<string, number> = {
+        SENT_TO_MTA: fallbackCounts.SENT_TO_MTA,
+        DELIVERED_TO_MAILBOX: fallbackCounts.DELIVERED_TO_MAILBOX,
+        DELIVERY_DELAYED: fallbackCounts.DELIVERY_DELAYED,
+        BOUNCED: fallbackCounts.BOUNCED,
+        COMPLAINED_SPAM: fallbackCounts.COMPLAINED_SPAM,
+        RECIPIENT_OPENED: fallbackCounts.RECIPIENT_OPENED,
+        RECIPIENT_CLICKED: fallbackCounts.RECIPIENT_CLICKED,
+    };
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+
+    if (supabaseUrl && supabaseServiceKey) {
+        try {
+            const db = createClient(supabaseUrl, supabaseServiceKey);
+            const { data } = await db
+                .from("integration_events")
+                .select("type")
+                .in("type", Object.keys(EVENT_STATUS_MAP));
+
+            if (Array.isArray(data)) {
+                for (const key of Object.keys(counts)) {
+                    counts[key] = 0;
+                }
+                for (const row of data) {
+                    const status = EVENT_STATUS_MAP[row.type];
+                    if (status) {
+                        counts[status] = (counts[status] || 0) + 1;
+                    }
+                }
+            }
+        } catch {
+            // Fall back to in-memory counts if DB query fails
+        }
+    }
+
     let totalVerifiedEvents = 0;
-    for (const count of Object.values(lifecycleCounts)) {
+    for (const count of Object.values(counts)) {
         totalVerifiedEvents += count;
     }
 
@@ -96,7 +133,7 @@ export async function GET() {
             },
             supported_events: Object.keys(EVENT_STATUS_MAP),
             total_verified_events: totalVerifiedEvents,
-            lifecycle_counts: lifecycleCounts,
+            lifecycle_counts: counts,
         },
         {
             headers: {
@@ -171,45 +208,57 @@ export async function POST(req: NextRequest) {
     // Persist to Supabase with Event-ID Deduplication (PostgreSQL Unique Constraint 23505)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
-    const workspaceId =
+    let workspaceId =
         process.env.FOUNDER_WORKSPACE_ID ||
-        process.env.FLOWMEET_PILOT_WORKSPACE_ID ||
-        "default";
+        process.env.FLOWMEET_PILOT_WORKSPACE_ID;
 
     let persistedToSupabase = false;
     if (supabaseUrl && supabaseServiceKey) {
         try {
             const db = createClient(supabaseUrl, supabaseServiceKey);
-            const { error } = await db.from("integration_events").insert({
-                id: svixId!,
-                workspace_id: workspaceId,
-                type: eventType,
-                payload: {
-                    svix_id: svixId,
-                    email_id: emailId,
-                    event_type: eventType,
-                    lifecycle_status: lifecycleStatus,
-                    created_at: body?.created_at || new Date().toISOString(),
-                },
-            });
-
-            if (error?.code === "23505") {
-                processedSvixIds.add(svixId!);
-                return NextResponse.json({
-                    received: true,
-                    duplicate: true,
-                    svix_id: svixId,
-                    lifecycle_status: lifecycleStatus,
-                });
+            if (!workspaceId) {
+                const { data: wsRow } = await db
+                    .from("workspace_users")
+                    .select("workspace_id")
+                    .limit(1)
+                    .single();
+                workspaceId = wsRow?.workspace_id;
             }
-            persistedToSupabase = !error;
+
+            if (workspaceId) {
+                const { error } = await db.from("integration_events").insert({
+                    id: svixId!,
+                    workspace_id: workspaceId,
+                    type: eventType,
+                    status: "completed",
+                    payload: {
+                        svix_id: svixId,
+                        email_id: emailId,
+                        event_type: eventType,
+                        lifecycle_status: lifecycleStatus,
+                        created_at: body?.created_at || new Date().toISOString(),
+                    },
+                });
+
+                if (error?.code === "23505") {
+                    processedSvixIds.add(svixId!);
+                    return NextResponse.json({
+                        received: true,
+                        duplicate: true,
+                        persisted: true,
+                        svix_id: svixId,
+                        lifecycle_status: lifecycleStatus,
+                    });
+                }
+                persistedToSupabase = !error;
+            }
         } catch {
             persistedToSupabase = false;
         }
     }
 
     processedSvixIds.add(svixId!);
-    lifecycleCounts[lifecycleStatus] = (lifecycleCounts[lifecycleStatus] || 0) + 1;
+    fallbackCounts[lifecycleStatus] = (fallbackCounts[lifecycleStatus] || 0) + 1;
 
     return NextResponse.json({
         received: true,
