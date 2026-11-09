@@ -10,7 +10,7 @@ services:
         required: true
       - path: .env.integrations
         required: false
-    container_name: flowmeet-web
+    container_name: aetherhost-flowmeet-app-1
     restart: unless-stopped
     mem_limit: 300m
     memswap_limit: 600m
