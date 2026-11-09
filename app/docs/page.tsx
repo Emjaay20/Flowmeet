@@ -404,28 +404,28 @@ END:VCALENDAR`}
                             <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-zinc-500 pb-2 border-b border-zinc-100">
                                 <div className="flex items-center gap-2">
                                     <GitBranch className="w-4 h-4 text-zinc-900" />
-                                    <span className="font-bold text-zinc-950">ADR-006</span> • AUTONOMOUS n8n POLYGLOT ORCHESTRATION
+                                    <span className="font-bold text-zinc-950">ADR-006</span> • 12-NODE n8n POLYGLOT ORCHESTRATION (4 STAGE GROUPS)
                                 </div>
                                 <a
                                     href="/workflows/polyglot-revenue-orchestrator.json"
                                     download="polyglot-revenue-orchestrator.json"
                                     className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-950 text-[#c8f944] font-mono text-[11px] font-bold hover:bg-zinc-800 transition-all"
                                 >
-                                    <span>Download n8n Workflow (.json)</span>
+                                    <span>Download 12-Node Workflow (.json)</span>
                                     <ExternalLink className="w-3 h-3" />
                                 </a>
                             </div>
                             <h2 className="font-editorial text-3xl sm:text-4xl font-normal text-zinc-950 tracking-tight">
-                                Parallel Polyglot Fan-Out &amp; Hallucination Circuit Breaker (n8n)
+                                12-Node Parallel Polyglot Fan-Out, 50% RAG Circuit Breaker &amp; Safe-Mode Resend Dispatch
                             </h2>
                             <p className="text-sm text-zinc-600 leading-relaxed font-sans">
-                                Rather than relying on slow, ungrounded LLM chains, Flowmeet&apos;s production n8n workflow (<code className="text-xs font-mono bg-zinc-100 px-1.5 py-0.5 rounded text-zinc-900">n8n/polyglot-revenue-orchestrator.json</code>) executes deterministic systems microservices in parallel before synthesizing outreach and enforcing an ARR + RAG confidence circuit breaker:
+                                Rather than relying on slow, ungrounded LLM chains, Flowmeet&apos;s production 12-node n8n workflow (<code className="text-xs font-mono bg-zinc-100 px-1.5 py-0.5 rounded text-zinc-900">n8n/polyglot-revenue-orchestrator.json</code>) is organised into <strong>4 logical stage groups</strong> and <strong>2 Resend dispatch branches</strong>. It executes deterministic microservices in parallel, logs audit state to Supabase, enforces an ARR + 50% RAG confidence circuit breaker, and protects demonstration domains with a Safe-Mode guard:
                             </p>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-sans">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans">
                                 <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
                                     <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
-                                        <span className="font-mono font-bold text-zinc-900">1. Parallel Fan-Out</span>
+                                        <span className="font-mono font-bold text-zinc-900">1. Parallel Fan-Out (Nodes 1, 2a, 2b)</span>
                                         <span className="font-mono text-[10px] text-orange-700 font-bold bg-orange-50 px-2 py-0.5 rounded border border-orange-200">Rust + Python</span>
                                     </div>
                                     <p className="text-zinc-600">
@@ -435,21 +435,31 @@ END:VCALENDAR`}
 
                                 <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
                                     <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
-                                        <span className="font-mono font-bold text-zinc-900">2. 22µs Territory Lock</span>
-                                        <span className="font-mono text-[10px] text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-200">Go 1.22</span>
+                                        <span className="font-mono font-bold text-zinc-900">2. 22µs Territory Lock &amp; Audit (Nodes 3–6)</span>
+                                        <span className="font-mono text-[10px] text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-200">Go 1.22 + Supabase</span>
                                     </div>
                                     <p className="text-zinc-600">
-                                        Rust firmographics pipe directly into <code className="font-mono text-zinc-800">/api/route-lead</code>, where Go goroutines compute ICP score, deal ARR tier, and lock the regional Cal.com slot.
+                                        Rust firmographics pipe into <code className="font-mono text-zinc-800">/api/route-lead</code> (Go goroutines compute ICP score, deal ARR tier, and Cal.com slot), merge with RAG citations, and persist to Supabase via <code className="font-mono text-zinc-800">/api/ingest</code>.
                                     </p>
                                 </div>
 
                                 <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
                                     <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
-                                        <span className="font-mono font-bold text-zinc-900">3. Circuit Breaker</span>
-                                        <span className="font-mono text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">ARR + RAG Guard</span>
+                                        <span className="font-mono font-bold text-zinc-900">3. Circuit Breaker (Node 7)</span>
+                                        <span className="font-mono text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">$65k ARR / 50% RAG</span>
                                     </div>
                                     <p className="text-zinc-600">
-                                        If <code className="font-mono text-zinc-800">ARR &gt;= $65k</code> OR <code className="font-mono text-zinc-800">RAG Confidence &lt; 85%</code>, the workflow halts auto-send and escalates a 1-click HITL approval payload to the founder.
+                                        If <code className="font-mono text-zinc-800">Estimated ARR &gt;= $65,000</code> OR <code className="font-mono text-zinc-800">RAG Confidence &lt; 50%</code>, the workflow halts autonomous outreach and routes to the Founder HITL escalation branch (<code className="font-mono text-zinc-800">8a → 9a</code>).
+                                    </p>
+                                </div>
+
+                                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
+                                    <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
+                                        <span className="font-mono font-bold text-zinc-900">4. Resend Branches &amp; Safe-Mode (Nodes 8a–9b)</span>
+                                        <span className="font-mono text-[10px] text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded border border-purple-200">Verified Delivery ID</span>
+                                    </div>
+                                    <p className="text-zinc-600">
+                                        Requests passing guardrails enter the autonomous Resend branch (<code className="font-mono text-zinc-800">8b → 9b</code>). Showcase domains (<code className="font-mono text-zinc-800">stripe.com</code>, <code className="font-mono text-zinc-800">linear.app</code>) are redirected by a Safe-Mode guard to protect third-party addresses while returning real Resend confirmation IDs.
                                     </p>
                                 </div>
                             </div>
@@ -461,7 +471,7 @@ END:VCALENDAR`}
                                 <div className="flex items-center gap-2">
                                     <Layers className="w-5 h-5 text-[#c8f944]" />
                                     <h3 className="font-mono text-sm font-bold text-white uppercase tracking-wider">
-                                        LIVE n8n POLYGLOT ORCHESTRATOR &amp; CIRCUIT BREAKER TESTER
+                                        LIVE 12-NODE n8n POLYGLOT ORCHESTRATOR &amp; CIRCUIT BREAKER TESTER
                                     </h3>
                                 </div>
                                 <span className="px-2.5 py-0.5 rounded-full bg-zinc-800 text-[10px] font-mono text-[#c8f944] border border-zinc-700">
@@ -470,7 +480,7 @@ END:VCALENDAR`}
                             </div>
 
                             <p className="text-xs text-zinc-400 font-sans">
-                                Execute the 8-node n8n orchestration graph live across Rust (<code className="text-zinc-200">:8081</code>), Go (<code className="text-zinc-200">:8082</code>), Python RAG (<code className="text-zinc-200">:8083</code>), and Supabase audit ingestion:
+                                Execute the 12-node n8n orchestration graph (4 stage groups, 50% RAG threshold, and 2 Resend dispatch branches) live across Rust (<code className="text-zinc-200">:8081</code>), Go (<code className="text-zinc-200">:8082</code>), Python RAG (<code className="text-zinc-200">:8083</code>), Supabase, and Resend:
                             </p>
 
                             <div className="flex flex-wrap items-center gap-3">
@@ -529,11 +539,11 @@ END:VCALENDAR`}
                                     {n8nLoading ? (
                                         <>
                                             <RefreshCw className="w-4 h-4 animate-spin text-zinc-950" />
-                                            <span>Running Parallel Rust + Python + Go Nodes...</span>
+                                            <span>Running 12-Node Parallel Rust + Python + Go + Resend Graph...</span>
                                         </>
                                     ) : (
                                         <>
-                                            <span>Execute 8-Node Polyglot Workflow</span>
+                                            <span>Execute 12-Node Polyglot Workflow</span>
                                             <ArrowRight className="w-4 h-4 text-zinc-950" />
                                         </>
                                     )}

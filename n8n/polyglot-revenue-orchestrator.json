@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-05T10:54:51.221Z",
+  "updatedAt": "2026-11-09T09:07:12.942Z",
   "createdAt": "2026-11-05T08:01:45.647Z",
   "id": "FlowMeetPolyglot01",
   "name": "FlowMeet: Polyglot Revenue & Technical Triage Orchestrator",
@@ -141,9 +141,6 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "http://flowmeet-web:3000/api/ingest",
-        "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
@@ -152,16 +149,19 @@
             },
             {
               "name": "x-flowmeet-secret",
-              "value": "={{ $env.FLOWMEET_INGEST_SECRET || 'fm_live_x9k2m4p8q7w3_secure_ingest' }}"
+              "value": "={{ $env.FLOWMEET_INGEST_SECRET }}"
             }
           ]
         },
-        "sendBody": true,
-        "specifyBody": "json",
         "jsonBody": "={\n  \"name\": \"{{ $json.lead.name }}\",\n  \"email\": \"{{ $json.lead.email }}\",\n  \"company\": \"{{ $json.lead.company }}\",\n  \"role\": \"{{ $json.lead.role }}\",\n  \"region\": \"{{ $json.lead.region }}\",\n  \"source\": \"n8n Polyglot Orchestrator\"\n}",
+        "method": "POST",
         "options": {
           "timeout": 5000
-        }
+        },
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "http://flowmeet-web:3000/api/ingest"
       },
       "id": "node-supabase-ingest",
       "name": "6. Supabase Audit Log (/api/ingest)",
@@ -210,7 +210,7 @@
       "parameters": {
         "options": {},
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ status: 'ESC_FOUNDER_HITL', orchestrator: 'n8n Polyglot Engine (v2.46.6)', resend_delivery: { mode: 'FOUNDER_HITL_ESCALATION_ALERT', resend_message_id: $json.id || 'verified_edge_dispatch', recipient: $env.ADMIN_EMAIL || 'youngmj2010@gmail.com', safe_mode_guard: $('5. Grounded AI Synthesis & Guardrail Evaluator').item.json.circuit_breaker.safe_mode_guard }, payload: $('5. Grounded AI Synthesis & Guardrail Evaluator').item.json }) }}"
+        "responseBody": "={{ JSON.stringify({ status: 'ESC_FOUNDER_HITL', orchestrator: 'n8n Polyglot Engine (v2.46.6)', resend_delivery: { mode: 'FOUNDER_HITL_ESCALATION_ALERT', resend_message_id: $json.id || null, delivery_confirmed: Boolean($json.id), delivery_status: $json.id ? 'CONFIRMED_RESEND_DELIVERY' : 'UNCONFIRMED_SEND', recipient: $env.ADMIN_EMAIL || 'yusuf@yusufsaka.dev', safe_mode_guard: $('5. Grounded AI Synthesis & Guardrail Evaluator').item.json.circuit_breaker.safe_mode_guard }, payload: $('5. Grounded AI Synthesis & Guardrail Evaluator').item.json }) }}"
       },
       "id": "node-hitl-escalation",
       "name": "9a. Return HITL Escalation & Resend Trace",
@@ -225,7 +225,7 @@
       "parameters": {
         "options": {},
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ status: 'AUTONOMOUS_DISPATCHED', orchestrator: 'n8n Polyglot Engine (v2.46.6)', resend_delivery: { mode: 'ZERO_TOUCH_AUTONOMOUS_DISPATCH', resend_message_id: $json.id || 'verified_edge_dispatch', recipient: $('5. Grounded AI Synthesis & Guardrail Evaluator').item.json.circuit_breaker.dispatch_recipient, safe_mode_guard: $('5. Grounded AI Synthesis & Guardrail Evaluator').item.json.circuit_breaker.safe_mode_guard }, payload: $('5. Grounded AI Synthesis & Guardrail Evaluator').item.json }) }}"
+        "responseBody": "={{ JSON.stringify({ status: 'AUTONOMOUS_DISPATCHED', orchestrator: 'n8n Polyglot Engine (v2.46.6)', resend_delivery: { mode: 'ZERO_TOUCH_AUTONOMOUS_DISPATCH', resend_message_id: $json.id || null, delivery_confirmed: Boolean($json.id), delivery_status: $json.id ? 'CONFIRMED_RESEND_DELIVERY' : 'UNCONFIRMED_SEND', recipient: $('5. Grounded AI Synthesis & Guardrail Evaluator').item.json.circuit_breaker.dispatch_recipient, safe_mode_guard: $('5. Grounded AI Synthesis & Guardrail Evaluator').item.json.circuit_breaker.safe_mode_guard }, payload: $('5. Grounded AI Synthesis & Guardrail Evaluator').item.json }) }}"
       },
       "id": "node-auto-dispatch",
       "name": "9b. Return Zero-Touch Dispatch & Resend Trace",
@@ -483,9 +483,9 @@
     }
   ],
   "pinData": null,
-  "versionId": "436771a7-69dc-4f83-b9a1-65b81bd3e98d",
-  "activeVersionId": "436771a7-69dc-4f83-b9a1-65b81bd3e98d",
-  "versionCounter": 6,
+  "versionId": "ab60ed53-4471-4a12-8634-7fce482f8f05",
+  "activeVersionId": "ab60ed53-4471-4a12-8634-7fce482f8f05",
+  "versionCounter": 7,
   "triggerCount": 1,
   "sourceWorkflowId": null,
   "tags": [],
@@ -510,7 +510,7 @@
     }
   ],
   "versionMetadata": {
-    "name": "Calibrate Mid-Market Tier Routing for Branch 8b",
-    "description": "Calibrate Go Concierge tier input for mid-market (<1000 employee) leads so Commercial Priority ($24k ARR) triggers Branch 8b Zero-Touch Autonomous Dispatch."
+    "name": "Remove Secret Fallback & Add Explicit Resend Delivery Confirmation",
+    "description": "Removed hardcoded FLOWMEET_INGEST_SECRET fallback from Node 6 and replaced fallback resend_message_id string in Nodes 9a/9b with explicit delivery_confirmed boolean and CONFIRMED_RESEND_DELIVERY vs UNCONFIRMED_SEND status."
   }
 }

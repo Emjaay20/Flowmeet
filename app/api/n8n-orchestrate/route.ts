@@ -119,7 +119,9 @@ export async function POST(req: NextRequest) {
         // STEP 6: Trigger Live n8n Container Webhook (or fallback to direct /api/ingest)
         let resendDelivery: any = {
             mode: requiresHitlApproval ? "FOUNDER_HITL_ESCALATION_ALERT" : "ZERO_TOUCH_AUTONOMOUS_DISPATCH",
-            resend_message_id: "live_n8n_resend_verified",
+            resend_message_id: null,
+            delivery_confirmed: false,
+            delivery_status: "UNCONFIRMED_SEND",
             recipient: process.env.ADMIN_EMAIL || "yusuf@yusufsaka.dev",
             safe_mode_guard: "DEMO_SAFE_MODE_ACTIVE",
         };
@@ -138,29 +140,37 @@ export async function POST(req: NextRequest) {
                 const n8nData = await n8nRes.json();
                 ingestLogged = true;
                 if (n8nData?.resend_delivery) {
-                    resendDelivery = n8nData.resend_delivery;
+                    const msgId = n8nData.resend_delivery.resend_message_id || null;
+                    resendDelivery = {
+                        ...n8nData.resend_delivery,
+                        resend_message_id: msgId,
+                        delivery_confirmed: Boolean(msgId),
+                        delivery_status: msgId ? "CONFIRMED_RESEND_DELIVERY" : "UNCONFIRMED_SEND",
+                    };
                 }
             }
         } catch {
             // Fallback to direct /api/ingest if running locally without flowmeet-n8n container
             try {
-                const ingestSecret = process.env.FLOWMEET_INGEST_SECRET || "fm_live_x9k2m4p8q7w3_secure_ingest";
-                const ingestRes = await fetch(`${origin}/api/ingest`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "x-flowmeet-secret": ingestSecret,
-                    },
-                    body: JSON.stringify({
-                        name,
-                        email,
-                        company,
-                        role,
-                        region,
-                        source: "n8n Polyglot Orchestrator",
-                    }),
-                });
-                ingestLogged = ingestRes.ok;
+                const ingestSecret = process.env.FLOWMEET_INGEST_SECRET;
+                if (ingestSecret) {
+                    const ingestRes = await fetch(`${origin}/api/ingest`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "x-flowmeet-secret": ingestSecret,
+                        },
+                        body: JSON.stringify({
+                            name,
+                            email,
+                            company,
+                            role,
+                            region,
+                            source: "n8n Polyglot Orchestrator",
+                        }),
+                    });
+                    ingestLogged = ingestRes.ok;
+                }
             } catch {
                 ingestLogged = false;
             }
@@ -236,9 +246,11 @@ export async function POST(req: NextRequest) {
                     name: requiresHitlApproval
                         ? "8a-9a. Resend API: Founder HITL Alert & Webhook Return"
                         : "8b-9b. Resend API: Safe-Mode Autonomous Dispatch & Return",
-                    status: "DELIVERED",
+                    status: resendDelivery.delivery_confirmed ? "CONFIRMED_RESEND_DELIVERY" : "UNCONFIRMED_SEND",
                     latency_ms: 140,
-                    output_summary: `Resend Message ID: ${resendDelivery.resend_message_id} -> ${resendDelivery.recipient}`,
+                    output_summary: resendDelivery.delivery_confirmed
+                        ? `Confirmed Resend ID: ${resendDelivery.resend_message_id} -> ${resendDelivery.recipient}`
+                        : `Unconfirmed Send (No Resend ID returned) -> ${resendDelivery.recipient}`,
                 },
             ],
             payload: {

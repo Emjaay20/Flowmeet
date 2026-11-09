@@ -21,7 +21,7 @@ services:
       NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-https://xfvvrqgdklymfubnbiyz.supabase.co}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-sb_publishable_0BNj-1kLBekuFHwY2Pg9zQ_PgAM3GeW}
       SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:-sb_secret_qL_YYlCsagjBjEUnteXb_g_iFTHIotV}
-      FLOWMEET_INGEST_SECRET: ${FLOWMEET_INGEST_SECRET:-fm_live_x9k2m4p8q7w3_secure_ingest}
+      FLOWMEET_INGEST_SECRET: ${FLOWMEET_INGEST_SECRET}
       RUST_CRAWLER_URL: http://flowmeet-crawler:8081
       GOLANG_CONCIERGE_URL: http://flowmeet-concierge:8082
       PYTHON_AI_BRAIN_URL: http://flowmeet-ai-brain:8083
@@ -104,7 +104,7 @@ services:
       N8N_PROXY_HOPS: "1"
       NODE_OPTIONS: "--max-old-space-size=768"
       N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
-      FLOWMEET_INGEST_SECRET: ${FLOWMEET_INGEST_SECRET:-fm_live_x9k2m4p8q7w3_secure_ingest}
+      FLOWMEET_INGEST_SECRET: ${FLOWMEET_INGEST_SECRET}
       GENERIC_TIMEZONE: Africa/Lagos
     volumes:
       - flowmeet-n8n-data:/home/node/.n8n
