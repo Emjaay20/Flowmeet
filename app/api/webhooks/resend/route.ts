@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { createClient as createServerSupabaseClient } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
 
@@ -72,20 +73,29 @@ function verifySvixSignature(
     return false;
 }
 
-function extractWorkspaceTag(data: any): string | null {
+function extractTagValue(data: any, key: string): string | null {
     const tags = data?.tags;
     if (!tags) return null;
     if (Array.isArray(tags)) {
-        const match = tags.find((t: any) => t?.name === "workspace_id" && typeof t?.value === "string");
-        if (match && UUID_REGEX.test(match.value)) {
-            return match.value;
-        }
-    } else if (typeof tags === "object" && typeof tags.workspace_id === "string") {
-        if (UUID_REGEX.test(tags.workspace_id)) {
-            return tags.workspace_id;
-        }
+        const match = tags.find((t: any) => t?.name === key && typeof t?.value === "string");
+        return match ? match.value : null;
+    }
+    if (typeof tags === "object" && typeof tags[key] === "string") {
+        return tags[key];
     }
     return null;
+}
+
+function isExplicitPilotMessage(data: any): boolean {
+    const pilotTag = extractTagValue(data, "pilot_demo");
+    if (pilotTag === "true") {
+        return true;
+    }
+    const headers = data?.headers;
+    if (headers && typeof headers === "object" && headers["x-flowmeet-pilot"] === "true") {
+        return true;
+    }
+    return false;
 }
 
 async function resolveOriginatingWorkspace(
@@ -94,8 +104,8 @@ async function resolveOriginatingWorkspace(
     data: any
 ): Promise<{ workspaceId: string | null; dbError: boolean }> {
     // 1. Check explicit workspace_id tag attached to the outbound Resend message
-    const taggedWorkspace = extractWorkspaceTag(data);
-    if (taggedWorkspace) {
+    const taggedWorkspace = extractTagValue(data, "workspace_id");
+    if (taggedWorkspace && UUID_REGEX.test(taggedWorkspace)) {
         return { workspaceId: taggedWorkspace, dbError: false };
     }
 
@@ -128,14 +138,44 @@ async function resolveOriginatingWorkspace(
         return { workspaceId: priorEvent.workspace_id, dbError: false };
     }
 
-    // 4. Configured pilot/founder workspace UUID (never queries arbitrary rows from workspace_users)
-    const configuredWorkspace =
-        process.env.FOUNDER_WORKSPACE_ID || process.env.FLOWMEET_PILOT_WORKSPACE_ID || null;
-    if (configuredWorkspace && UUID_REGEX.test(configuredWorkspace)) {
-        return { workspaceId: configuredWorkspace, dbError: false };
+    // 4. Restrict pilot/founder workspace fallback strictly to explicitly tagged pilot/demo messages
+    if (isExplicitPilotMessage(data)) {
+        const configuredPilotWorkspace =
+            process.env.FOUNDER_WORKSPACE_ID || process.env.FLOWMEET_PILOT_WORKSPACE_ID || null;
+        if (configuredPilotWorkspace && UUID_REGEX.test(configuredPilotWorkspace)) {
+            return { workspaceId: configuredPilotWorkspace, dbError: false };
+        }
     }
 
     return { workspaceId: null, dbError: false };
+}
+
+async function resolveAuthenticatedUserId(
+    req: NextRequest,
+    serviceDb: SupabaseClient
+): Promise<string | null> {
+    const authHeader = req.headers.get("authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+        const token = authHeader.slice(7).trim();
+        if (token) {
+            const { data, error } = await serviceDb.auth.getUser(token);
+            if (!error && data?.user?.id) {
+                return data.user.id;
+            }
+        }
+    }
+
+    try {
+        const sessionClient = await createServerSupabaseClient();
+        const { data, error } = await sessionClient.auth.getUser();
+        if (!error && data?.user?.id) {
+            return data.user.id;
+        }
+    } catch {
+        // Ignore cookie parsing errors on stateless requests
+    }
+
+    return null;
 }
 
 export async function GET(req: NextRequest) {
@@ -149,29 +189,73 @@ export async function GET(req: NextRequest) {
         RECIPIENT_CLICKED: 0,
     };
 
-    const requestedWorkspace = req.nextUrl.searchParams.get("workspace_id");
-    const defaultWorkspace =
-        process.env.FOUNDER_WORKSPACE_ID || process.env.FLOWMEET_PILOT_WORKSPACE_ID || null;
-    const scopedWorkspaceId =
-        requestedWorkspace && UUID_REGEX.test(requestedWorkspace)
-            ? requestedWorkspace
-            : defaultWorkspace && UUID_REGEX.test(defaultWorkspace)
-            ? defaultWorkspace
-            : null;
-
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+    const pilotWorkspaceId =
+        process.env.FOUNDER_WORKSPACE_ID || process.env.FLOWMEET_PILOT_WORKSPACE_ID || null;
 
-    if (!supabaseUrl || !supabaseServiceKey || !scopedWorkspaceId) {
+    if (!supabaseUrl || !supabaseServiceKey) {
         return NextResponse.json(
-            {
-                error: "Database credentials or valid workspace scope not configured",
-            },
+            { error: "Database credentials not configured" },
             { status: 503 }
         );
     }
 
     const db = createClient(supabaseUrl, supabaseServiceKey);
+    const requestedWorkspace = req.nextUrl.searchParams.get("workspace_id");
+    let scopedWorkspaceId: string | null = null;
+    let accessMode = "PUBLIC_PILOT_DEMO_AGGREGATES";
+
+    if (requestedWorkspace !== null) {
+        if (!UUID_REGEX.test(requestedWorkspace)) {
+            return NextResponse.json(
+                { error: "Invalid workspace_id parameter" },
+                { status: 400 }
+            );
+        }
+
+        // Require authenticated session and verified workspace membership for tenant-specific queries
+        const userId = await resolveAuthenticatedUserId(req, db);
+        if (!userId) {
+            return NextResponse.json(
+                { error: "Authentication required to query workspace-specific metrics" },
+                { status: 401 }
+            );
+        }
+
+        const { data: membership, error: membershipErr } = await db
+            .from("workspace_users")
+            .select("workspace_id")
+            .eq("user_id", userId)
+            .eq("workspace_id", requestedWorkspace)
+            .maybeSingle();
+
+        if (membershipErr) {
+            return NextResponse.json(
+                { error: "Failed to verify workspace membership" },
+                { status: 503 }
+            );
+        }
+
+        if (!membership) {
+            return NextResponse.json(
+                { error: "Forbidden: authenticated user is not a member of requested workspace" },
+                { status: 403 }
+            );
+        }
+
+        scopedWorkspaceId = requestedWorkspace;
+        accessMode = "AUTHENTICATED_TENANT_MEMBER";
+    } else {
+        if (!pilotWorkspaceId || !UUID_REGEX.test(pilotWorkspaceId)) {
+            return NextResponse.json(
+                { error: "Public demonstration workspace not configured" },
+                { status: 503 }
+            );
+        }
+        scopedWorkspaceId = pilotWorkspaceId;
+    }
+
     const { data, error } = await db
         .from("integration_events")
         .select("type")
@@ -180,9 +264,7 @@ export async function GET(req: NextRequest) {
 
     if (error) {
         return NextResponse.json(
-            {
-                error: "Failed to query scoped delivery metrics",
-            },
+            { error: "Failed to query scoped delivery metrics" },
             { status: 503 }
         );
     }
@@ -206,11 +288,13 @@ export async function GET(req: NextRequest) {
             service: "FlowMeet Resend Webhook Lifecycle Tracker",
             endpoint: "/api/webhooks/resend",
             workspace_scope: "DETERMINISTIC_TENANT_SCOPED",
+            access_mode: accessMode,
             security: {
                 signature_verification: "SVIX_HMAC_SHA256_REQUIRED",
                 replay_window_seconds: 300,
                 deduplication: "SVIX_ID_IDEMPOTENT_SUPABASE",
-                failure_handling: "RETRYABLE_503_ON_DB_ERROR",
+                failure_handling: "RETRYABLE_503_ON_DB_OR_UNBOUND_RACE",
+                tenant_authorization: "SESSION_MEMBERSHIP_REQUIRED_FOR_TENANT_QUERY",
                 public_exposure: "AGGREGATE_COUNTS_ONLY_NO_PII",
             },
             supported_events: Object.keys(EVENT_STATUS_MAP),
@@ -310,13 +394,22 @@ export async function POST(req: NextRequest) {
         );
     }
 
+    // If the webhook arrived before the outbound resend-msg:<email_id> binding finished committing,
+    // return a retryable 503 with Retry-After so Resend re-delivers once the binding is stored.
     if (!workspaceId) {
         return NextResponse.json(
             {
                 received: false,
-                error: "Unable to deterministically resolve originating workspace for email_id",
+                retryable: true,
+                status: "AWAITING_OUTBOUND_WORKSPACE_BINDING",
+                error: "Originating workspace binding for email_id not yet committed; scheduled for retry",
             },
-            { status: 422 }
+            {
+                status: 503,
+                headers: {
+                    "Retry-After": "5",
+                },
+            }
         );
     }
 

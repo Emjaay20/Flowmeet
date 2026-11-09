@@ -1,7 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { createClient as createServerSupabaseClient } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function resolveAuthenticatedUserId(
+    req: NextRequest,
+    serviceDb: SupabaseClient
+): Promise<string | null> {
+    const authHeader = req.headers.get("authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+        const token = authHeader.slice(7).trim();
+        if (token) {
+            const { data, error } = await serviceDb.auth.getUser(token);
+            if (!error && data?.user?.id) {
+                return data.user.id;
+            }
+        }
+    }
+
+    try {
+        const sessionClient = await createServerSupabaseClient();
+        const { data, error } = await sessionClient.auth.getUser();
+        if (!error && data?.user?.id) {
+            return data.user.id;
+        }
+    } catch {
+        // Ignore cookie parsing errors on stateless requests
+    }
+
+    return null;
+}
 
 export async function OPTIONS() {
     return new NextResponse(null, {
@@ -26,7 +57,63 @@ export async function POST(req: NextRequest) {
             region = "Americas",
             employees = 3500,
             query = "How do I configure SAML 2.0 single sign-on for Okta and verify x-flowmeet-secret webhooks?",
+            workspace_id: requestedWorkspaceId,
         } = body;
+
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+        const pilotWorkspaceId =
+            process.env.FOUNDER_WORKSPACE_ID || process.env.FLOWMEET_PILOT_WORKSPACE_ID || null;
+
+        let verifiedWorkspaceId: string | null = null;
+        let isPilotDemoRun = false;
+
+        if (requestedWorkspaceId !== undefined && requestedWorkspaceId !== null) {
+            if (typeof requestedWorkspaceId !== "string" || !UUID_REGEX.test(requestedWorkspaceId)) {
+                return NextResponse.json(
+                    { success: false, error: "Invalid workspace_id format" },
+                    { status: 400 }
+                );
+            }
+            if (!supabaseUrl || !supabaseServiceKey) {
+                return NextResponse.json(
+                    { success: false, error: "Database credentials not configured for workspace verification" },
+                    { status: 503 }
+                );
+            }
+            const serviceDb = createClient(supabaseUrl, supabaseServiceKey);
+            const userId = await resolveAuthenticatedUserId(req, serviceDb);
+            if (!userId) {
+                return NextResponse.json(
+                    { success: false, error: "Authentication required when specifying workspace_id" },
+                    { status: 401 }
+                );
+            }
+            const { data: membership, error: membershipErr } = await serviceDb
+                .from("workspace_users")
+                .select("workspace_id")
+                .eq("user_id", userId)
+                .eq("workspace_id", requestedWorkspaceId)
+                .maybeSingle();
+
+            if (membershipErr) {
+                return NextResponse.json(
+                    { success: false, error: "Failed to verify workspace membership" },
+                    { status: 503 }
+                );
+            }
+            if (!membership) {
+                return NextResponse.json(
+                    { success: false, error: "Forbidden: authenticated user does not belong to specified workspace_id" },
+                    { status: 403 }
+                );
+            }
+            verifiedWorkspaceId = requestedWorkspaceId;
+        } else {
+            verifiedWorkspaceId =
+                pilotWorkspaceId && UUID_REGEX.test(pilotWorkspaceId) ? pilotWorkspaceId : null;
+            isPilotDemoRun = true;
+        }
 
         const domain = email.includes("@") ? email.split("@")[1] : `${company.toLowerCase().replace(/\s+/g, "")}.com`;
         const origin = `http://127.0.0.1:${process.env.PORT || 3000}`;
@@ -152,37 +239,43 @@ export async function POST(req: NextRequest) {
                 ingestLogged = true;
                 if (n8nData?.resend_delivery) {
                     const msgId = n8nData.resend_delivery.resend_message_id || null;
-                    const originatingWorkspaceId =
-                        body.workspace_id ||
-                        process.env.FOUNDER_WORKSPACE_ID ||
-                        process.env.FLOWMEET_PILOT_WORKSPACE_ID ||
-                        null;
 
-                    if (
-                        msgId &&
-                        originatingWorkspaceId &&
-                        process.env.NEXT_PUBLIC_SUPABASE_URL &&
-                        process.env.SUPABASE_SERVICE_KEY
-                    ) {
-                        try {
-                            const db = createClient(
-                                process.env.NEXT_PUBLIC_SUPABASE_URL,
-                                process.env.SUPABASE_SERVICE_KEY
-                            );
-                            await db.from("integration_events").upsert({
-                                id: `resend-msg:${msgId}`,
-                                workspace_id: originatingWorkspaceId,
-                                type: "email.dispatched",
-                                status: "completed",
-                                payload: {
-                                    email_id: msgId,
-                                    workspace_id: originatingWorkspaceId,
-                                    company,
-                                    dispatched_at: new Date().toISOString(),
+                    if (msgId) {
+                        if (!verifiedWorkspaceId || !supabaseUrl || !supabaseServiceKey) {
+                            return NextResponse.json(
+                                {
+                                    success: false,
+                                    retryable: true,
+                                    error: "Missing verified workspace or database configuration to bind outbound Resend message ID",
                                 },
-                            });
-                        } catch {
-                            // Non-blocking if outbound binding upsert fails
+                                { status: 503 }
+                            );
+                        }
+
+                        const db = createClient(supabaseUrl, supabaseServiceKey);
+                        const { error: bindingError } = await db.from("integration_events").upsert({
+                            id: `resend-msg:${msgId}`,
+                            workspace_id: verifiedWorkspaceId,
+                            type: "email.dispatched",
+                            status: "completed",
+                            payload: {
+                                email_id: msgId,
+                                workspace_id: verifiedWorkspaceId,
+                                is_pilot_demo: isPilotDemoRun,
+                                company,
+                                dispatched_at: new Date().toISOString(),
+                            },
+                        });
+
+                        if (bindingError) {
+                            return NextResponse.json(
+                                {
+                                    success: false,
+                                    retryable: true,
+                                    error: "Failed to persist outbound Resend message-to-workspace binding",
+                                },
+                                { status: 503 }
+                            );
                         }
                     }
 
@@ -191,6 +284,7 @@ export async function POST(req: NextRequest) {
                         resend_message_id: msgId,
                         accepted_by_resend: Boolean(msgId),
                         delivery_status: msgId ? "ACCEPTED_BY_RESEND" : "UNACCEPTED_SEND",
+                        workspace_binding: msgId ? "VERIFIED_SUPABASE_BOUND" : "NO_MESSAGE_ID",
                         webhook_tracking: n8nData.resend_delivery.webhook_tracking || {
                             endpoint: "/api/webhooks/resend",
                             tracked_events: [
