@@ -1,11 +1,8 @@
 {
-  "updatedAt": "2026-11-09T09:07:12.942Z",
-  "createdAt": "2026-11-05T08:01:45.647Z",
   "id": "FlowMeetPolyglot01",
   "name": "FlowMeet: Polyglot Revenue & Technical Triage Orchestrator",
-  "description": "Autonomous B2B Revenue & Technical Triage Engine: Parallel Rust DOM Scraper (:8081) + Python FastAPI RAG (:8083) -> Go 22us Concierge (:8082) -> Supabase Audit -> Circuit Breaker -> Live Resend Dispatch with Recruiter Safe-Mode Guard.",
+  "description": "Autonomous B2B Revenue & Technical Triage Engine: Parallel Rust DOM Scraper (:8081) + Python FastAPI RAG (:8083) -> Go 22us Concierge (:8082) -> Supabase Audit -> Circuit Breaker -> Resend Dispatch (ACCEPTED_BY_RESEND + Webhook Tracking).",
   "active": true,
-  "isArchived": false,
   "nodes": [
     {
       "parameters": {
@@ -128,7 +125,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const webhookBody = $('1. Inbound Lead & Tech Inquiry Webhook').first().json.body || {};\nconst rustRes = $('2a. Rust Axum Crawler (/api/scrape)').first().json || {};\nconst goRes = $('3. Go Sub-50µs Concierge (/api/route-lead)').first().json || {};\nconst pyRes = $('2b. Python FastAPI RAG Brain (/api/ai-brain)').first().json || {};\n\nconst signals = rustRes.data?.firmographic_signals || {};\nconst routeData = goRes.data || {};\nconst ragData = pyRes.data || {};\n\nconst icpScore = routeData.final_icp_score ?? 92;\nconst dealArr = routeData.estimated_deal_arr_usd ?? 65000;\nconst qualificationTier = routeData.qualification_tier || 'VIP_ENTERPRISE_INSTANT';\nconst ragConfidence = ragData.confidence_score ?? 96.0;\n\n// Production AI Circuit Breaker Logic:\n// Escalate to Founder HITL if deal is Enterprise VIP ($65k+ ARR) OR if Python RAG confidence < 50%\nconst isHighStakesDeal = dealArr >= 65000 || qualificationTier === 'VIP_ENTERPRISE_INSTANT';\nconst isLowRagConfidence = ragConfidence < 50 || ragData.resolution_status === 'HUMAN_ESCALATION_RECOMMENDED';\nconst requiresHitlApproval = isHighStakesDeal || isLowRagConfidence;\n\nconst hitlReasons = [];\nif (isHighStakesDeal) hitlReasons.push(`HIGH_STAKES_DEAL ($${dealArr.toLocaleString()} ARR / ${qualificationTier})`);\nif (isLowRagConfidence) hitlReasons.push(`LOW_RAG_CONFIDENCE (${ragConfidence}% < 50% threshold)`);\n\nconst assignedRep = routeData.assigned_member || {\n  name: 'Yusuf Abubakar',\n  title: 'Founder & Lead Systems Architect',\n  calendar_url: 'https://cal.com/yusuf-abubakar-cvy8ug/technical-discovery'\n};\n\nconst leadEmail = (routeData.lead_email || webhookBody.email || 'vp_architecture@stripe.com').toLowerCase();\nconst leadDomain = leadEmail.includes('@') ? leadEmail.split('@')[1] : 'stripe.com';\nconst demoShowcaseDomains = ['stripe.com', 'linear.app', 'acmestore.io', 'example.com', 'vercel.com', 'chilipiper.com', 'luminovo.com'];\nconst isDemoDomain = demoShowcaseDomains.includes(leadDomain);\nconst adminEmail = $env.ADMIN_EMAIL || 'youngmj2010@gmail.com';\nconst dispatchRecipient = isDemoDomain ? adminEmail : leadEmail;\nconst safeModeStatus = isDemoDomain\n  ? `DEMO_SAFE_MODE_ACTIVE (Redirected ${leadEmail} -> ${adminEmail} to prevent spamming showcase domains)`\n  : `LIVE_PROSPECT_DELIVERY (${leadEmail})`;\n\nconst techStack = (signals.detected_tech_stack || ['Next.js', 'Kubernetes', 'Docker']).join(', ');\n\nconst synthesizedEmail = `Hi ${(webhookBody.name || 'there')},\\n\\n` +\n  `Our Rust crawler analyzed ${routeData.company || webhookBody.company || 'your domain'} and detected your ${techStack} architecture.\\n\\n` +\n  `Regarding your technical question (\"${ragData.query || webhookBody.query || 'Enterprise SSO & API Auth'}\"):\\n` +\n  `${ragData.direct_answer || ''}\\n\\n` +\n  `Verified Snippet:\\n${ragData.recommended_code_snippet || 'See documentation link above.'}\\n\\n` +\n  `Because your team qualifies for ${qualificationTier} ($${dealArr.toLocaleString()} est. ARR), our Go Concierge locked a priority architecture slot with ${assignedRep.name} (${assignedRep.title}):\\n` +\n  `👉 ${assignedRep.calendar_url}`;\n\nconst synthesizedHtml = `<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 620px; margin: 0 auto; padding: 24px; border: 1px solid #e4e4e7; border-radius: 16px; background: #ffffff; color: #18181b;\">` +\n  `<div style=\"font-size: 11px; font-family: monospace; color: #15803d; background: #dcfce7; display: inline-block; padding: 4px 10px; border-radius: 999px; font-weight: 700; margin-bottom: 16px;\">` +\n  `${requiresHitlApproval ? '🛡️ FOUNDER HITL ESCALATION CARD' : '⚡ ZERO-TOUCH AUTONOMOUS DISPATCH'} • ICP ${icpScore}/100 • $${dealArr.toLocaleString()} ARR</div>` +\n  `<h2 style=\"margin: 0 0 12px; font-size: 20px;\">${routeData.company || webhookBody.company || 'Enterprise Lead'}: Technical Triage & Calendar Lock</h2>` +\n  `<p style=\"font-size: 14px; line-height: 1.6; color: #3f3f46; white-space: pre-wrap;\">${synthesizedEmail}</p>` +\n  `<hr style=\"border: 0; border-top: 1px solid #e4e4e7; margin: 20px 0;\" />` +\n  `<div style=\"font-size: 12px; font-family: monospace; color: #71717a; background: #f4f4f5; padding: 12px; border-radius: 8px;\">` +\n  `<strong>Polyglot Telemetry:</strong> Rust Crawler: ${rustRes.latency_ms ?? 115}ms | Go Concierge: ${routeData.execution_time_microseconds ?? 22}µs | Python RAG: ${ragData.execution_time_ms ?? 0.87}ms (Conf: ${ragConfidence}%)<br/>` +\n  `<strong>Safe-Mode Guard:</strong> ${safeModeStatus}` +\n  `</div></div>`;\n\nreturn [{\n  json: {\n    lead: {\n      name: webhookBody.name || 'VP of Architecture',\n      email: leadEmail,\n      company: routeData.company || webhookBody.company || 'Stripe',\n      role: webhookBody.role || 'VP Engineering',\n      region: webhookBody.region || 'Americas'\n    },\n    scoring_and_routing: {\n      final_icp_score: icpScore,\n      qualification_tier: qualificationTier,\n      estimated_deal_arr_usd: dealArr,\n      assigned_member: assignedRep\n    },\n    rag_deflection: {\n      confidence_score: ragConfidence,\n      resolution_status: ragData.resolution_status || 'AUTONOMOUS_DEFLECTION_SUCCESS',\n      direct_answer: ragData.direct_answer,\n      recommended_code_snippet: ragData.recommended_code_snippet,\n      citations: ragData.citations || []\n    },\n    circuit_breaker: {\n      requires_hitl_approval: requiresHitlApproval,\n      execution_mode: requiresHitlApproval ? 'FOUNDER_HITL_ESCALATION' : 'ZERO_TOUCH_AUTONOMOUS_DISPATCH',\n      reasons: hitlReasons.length ? hitlReasons : ['ALL_GUARDRAILS_PASSED (ARR < $65k & RAG Confidence >= 50%)'],\n      safe_mode_guard: safeModeStatus,\n      dispatch_recipient: dispatchRecipient\n    },\n    telemetry: {\n      rust_crawler_latency_ms: rustRes.latency_ms ?? 115,\n      go_concierge_exec_us: routeData.execution_time_microseconds ?? 22,\n      python_rag_exec_ms: ragData.execution_time_ms ?? 0.87,\n      detected_tech_stack: signals.detected_tech_stack || []\n    },\n    synthesized_outreach_draft: synthesizedEmail,\n    synthesized_html: synthesizedHtml\n  }\n}];"
+        "jsCode": "const webhookBody = $('1. Inbound Lead & Tech Inquiry Webhook').first().json.body || {};\nconst rustRes = $('2a. Rust Axum Crawler (/api/scrape)').first().json || {};\nconst goRes = $('3. Go Sub-50µs Concierge (/api/route-lead)').first().json || {};\nconst pyRes = $('2b. Python FastAPI RAG Brain (/api/ai-brain)').first().json || {};\n\nconst signals = rustRes.data?.firmographic_signals || {};\nconst routeData = goRes.data || {};\nconst ragData = pyRes.data || {};\n\nconst icpScore = routeData.final_icp_score ?? 92;\nconst dealArr = routeData.estimated_deal_arr_usd ?? 65000;\nconst qualificationTier = routeData.qualification_tier || 'VIP_ENTERPRISE_INSTANT';\nconst ragConfidence = ragData.confidence_score ?? 96.0;\n\n// Production AI Circuit Breaker Logic:\n// Escalate to Founder HITL if deal is Enterprise VIP ($65k+ ARR) OR if Python RAG confidence < 50%\nconst isHighStakesDeal = dealArr >= 65000 || qualificationTier === 'VIP_ENTERPRISE_INSTANT';\nconst isLowRagConfidence = ragConfidence < 50 || ragData.resolution_status === 'HUMAN_ESCALATION_RECOMMENDED';\nconst requiresHitlApproval = isHighStakesDeal || isLowRagConfidence;\n\nconst hitlReasons = [];\nif (isHighStakesDeal) hitlReasons.push(`HIGH_STAKES_DEAL ($${dealArr.toLocaleString()} ARR / ${qualificationTier})`);\nif (isLowRagConfidence) hitlReasons.push(`LOW_RAG_CONFIDENCE (${ragConfidence}% < 50% threshold)`);\n\nconst assignedRep = routeData.assigned_member || {\n  name: 'Yusuf Abubakar',\n  title: 'Founder & Lead Systems Architect',\n  calendar_url: 'https://cal.com/yusuf-abubakar/15min'\n};\n\nconst leadEmail = (routeData.lead_email || webhookBody.email || 'vp_architecture@stripe.com').toLowerCase();\nconst leadDomain = leadEmail.includes('@') ? leadEmail.split('@')[1] : 'stripe.com';\nconst demoShowcaseDomains = ['stripe.com', 'linear.app', 'acmestore.io', 'example.com', 'vercel.com', 'chilipiper.com', 'luminovo.com'];\nconst isDemoDomain = demoShowcaseDomains.includes(leadDomain);\nconst adminEmail = $env.ADMIN_EMAIL || 'yusuf@yusufsaka.dev';\nconst dispatchRecipient = isDemoDomain ? adminEmail : leadEmail;\nconst safeModeStatus = isDemoDomain\n  ? `DEMO_SAFE_MODE_ACTIVE (Redirected ${leadEmail} -> ${adminEmail} to prevent spamming showcase domains)`\n  : `LIVE_PROSPECT_DELIVERY (${leadEmail})`;\n\nconst techStack = (signals.detected_tech_stack || ['Next.js', 'Kubernetes', 'Docker']).join(', ');\n\nconst synthesizedEmail = `Hi ${(webhookBody.name || 'there')},\\n\\n` +\n  `Our Rust crawler analyzed ${routeData.company || webhookBody.company || 'your domain'} and detected your ${techStack} architecture.\\n\\n` +\n  `Regarding your technical question (\"${ragData.query || webhookBody.query || 'Enterprise SSO & API Auth'}\"):\\n` +\n  `${ragData.direct_answer || ''}\\n\\n` +\n  `Verified Snippet:\\n${ragData.recommended_code_snippet || 'See documentation link above.'}\\n\\n` +\n  `Because your team qualifies for ${qualificationTier} ($${dealArr.toLocaleString()} est. ARR), our Go Concierge locked a priority architecture slot with ${assignedRep.name} (${assignedRep.title}):\\n` +\n  `👉 ${assignedRep.calendar_url}`;\n\nconst synthesizedHtml = `<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 620px; margin: 0 auto; padding: 24px; border: 1px solid #e4e4e7; border-radius: 16px; background: #ffffff; color: #18181b;\">` +\n  `<div style=\"font-size: 11px; font-family: monospace; color: #15803d; background: #dcfce7; display: inline-block; padding: 4px 10px; border-radius: 999px; font-weight: 700; margin-bottom: 16px;\">` +\n  `${requiresHitlApproval ? '🛡️ FOUNDER HITL ESCALATION CARD' : '⚡ ZERO-TOUCH AUTONOMOUS DISPATCH'} • ICP ${icpScore}/100 • $${dealArr.toLocaleString()} ARR</div>` +\n  `<h2 style=\"margin: 0 0 12px; font-size: 20px;\">${routeData.company || webhookBody.company || 'Enterprise Lead'}: Technical Triage & Calendar Lock</h2>` +\n  `<p style=\"font-size: 14px; line-height: 1.6; color: #3f3f46; white-space: pre-wrap;\">${synthesizedEmail}</p>` +\n  `<hr style=\"border: 0; border-top: 1px solid #e4e4e7; margin: 20px 0;\" />` +\n  `<div style=\"font-size: 12px; font-family: monospace; color: #71717a; background: #f4f4f5; padding: 12px; border-radius: 8px;\">` +\n  `<strong>Polyglot Telemetry:</strong> Rust Crawler: ${rustRes.latency_ms ?? 115}ms | Go Concierge: ${routeData.execution_time_microseconds ?? 22}µs | Python RAG: ${ragData.execution_time_ms ?? 0.87}ms (Conf: ${ragConfidence}%)<br/>` +\n  `<strong>Safe-Mode Guard:</strong> ${safeModeStatus}` +\n  `</div></div>`;\n\nreturn [{\n  json: {\n    lead: {\n      name: webhookBody.name || 'VP of Architecture',\n      email: leadEmail,\n      company: routeData.company || webhookBody.company || 'Stripe',\n      role: webhookBody.role || 'VP Engineering',\n      region: webhookBody.region || 'Americas'\n    },\n    scoring_and_routing: {\n      final_icp_score: icpScore,\n      qualification_tier: qualificationTier,\n      estimated_deal_arr_usd: dealArr,\n      assigned_member: assignedRep\n    },\n    rag_deflection: {\n      confidence_score: ragConfidence,\n      resolution_status: ragData.resolution_status || 'AUTONOMOUS_DEFLECTION_SUCCESS',\n      direct_answer: ragData.direct_answer,\n      recommended_code_snippet: ragData.recommended_code_snippet,\n      citations: ragData.citations || []\n    },\n    circuit_breaker: {\n      requires_hitl_approval: requiresHitlApproval,\n      execution_mode: requiresHitlApproval ? 'FOUNDER_HITL_ESCALATION' : 'ZERO_TOUCH_AUTONOMOUS_DISPATCH',\n      reasons: hitlReasons.length ? hitlReasons : ['ALL_GUARDRAILS_PASSED (ARR < $65k & RAG Confidence >= 50%)'],\n      safe_mode_guard: safeModeStatus,\n      dispatch_recipient: dispatchRecipient\n    },\n    telemetry: {\n      rust_crawler_latency_ms: rustRes.latency_ms ?? 115,\n      go_concierge_exec_us: routeData.execution_time_microseconds ?? 22,\n      python_rag_exec_ms: ragData.execution_time_ms ?? 0.87,\n      detected_tech_stack: signals.detected_tech_stack || []\n    },\n    synthesized_outreach_draft: synthesizedEmail,\n    synthesized_html: synthesizedHtml\n  }\n}];"
       },
       "id": "node-ai-synthesis",
       "name": "5. Grounded AI Synthesis & Guardrail Evaluator",
@@ -210,7 +207,7 @@
       "parameters": {
         "options": {},
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ status: 'ESC_FOUNDER_HITL', orchestrator: 'n8n Polyglot Engine (v2.46.6)', resend_delivery: { mode: 'FOUNDER_HITL_ESCALATION_ALERT', resend_message_id: $json.id || null, delivery_confirmed: Boolean($json.id), delivery_status: $json.id ? 'CONFIRMED_RESEND_DELIVERY' : 'UNCONFIRMED_SEND', recipient: $env.ADMIN_EMAIL || 'yusuf@yusufsaka.dev', safe_mode_guard: $('5. Grounded AI Synthesis & Guardrail Evaluator').item.json.circuit_breaker.safe_mode_guard }, payload: $('5. Grounded AI Synthesis & Guardrail Evaluator').item.json }) }}"
+        "responseBody": "={{ JSON.stringify({ status: 'ESC_FOUNDER_HITL', orchestrator: 'n8n Polyglot Engine (v2.46.6)', resend_delivery: { mode: 'FOUNDER_HITL_ESCALATION_ALERT', resend_message_id: $json.id || null, accepted_by_resend: Boolean($json.id), delivery_status: $json.id ? 'ACCEPTED_BY_RESEND' : 'UNACCEPTED_SEND', webhook_tracking: { endpoint: '/api/webhooks/resend', tracked_events: ['email.sent', 'email.delivered', 'email.delivery_delayed', 'email.bounced', 'email.complained'] }, recipient: $env.ADMIN_EMAIL || 'yusuf@yusufsaka.dev', safe_mode_guard: $('5. Grounded AI Synthesis & Guardrail Evaluator').item.json.circuit_breaker.safe_mode_guard }, payload: $('5. Grounded AI Synthesis & Guardrail Evaluator').item.json }) }}"
       },
       "id": "node-hitl-escalation",
       "name": "9a. Return HITL Escalation & Resend Trace",
@@ -225,7 +222,7 @@
       "parameters": {
         "options": {},
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ status: 'AUTONOMOUS_DISPATCHED', orchestrator: 'n8n Polyglot Engine (v2.46.6)', resend_delivery: { mode: 'ZERO_TOUCH_AUTONOMOUS_DISPATCH', resend_message_id: $json.id || null, delivery_confirmed: Boolean($json.id), delivery_status: $json.id ? 'CONFIRMED_RESEND_DELIVERY' : 'UNCONFIRMED_SEND', recipient: $('5. Grounded AI Synthesis & Guardrail Evaluator').item.json.circuit_breaker.dispatch_recipient, safe_mode_guard: $('5. Grounded AI Synthesis & Guardrail Evaluator').item.json.circuit_breaker.safe_mode_guard }, payload: $('5. Grounded AI Synthesis & Guardrail Evaluator').item.json }) }}"
+        "responseBody": "={{ JSON.stringify({ status: 'AUTONOMOUS_DISPATCHED', orchestrator: 'n8n Polyglot Engine (v2.46.6)', resend_delivery: { mode: 'ZERO_TOUCH_AUTONOMOUS_DISPATCH', resend_message_id: $json.id || null, accepted_by_resend: Boolean($json.id), delivery_status: $json.id ? 'ACCEPTED_BY_RESEND' : 'UNACCEPTED_SEND', webhook_tracking: { endpoint: '/api/webhooks/resend', tracked_events: ['email.sent', 'email.delivered', 'email.delivery_delayed', 'email.bounced', 'email.complained'] }, recipient: $('5. Grounded AI Synthesis & Guardrail Evaluator').item.json.circuit_breaker.dispatch_recipient, safe_mode_guard: $('5. Grounded AI Synthesis & Guardrail Evaluator').item.json.circuit_breaker.safe_mode_guard }, payload: $('5. Grounded AI Synthesis & Guardrail Evaluator').item.json }) }}"
       },
       "id": "node-auto-dispatch",
       "name": "9b. Return Zero-Touch Dispatch & Resend Trace",
@@ -258,7 +255,7 @@
             }
           ]
         },
-        "jsonBody": "={\n  \"from\": \"{{ $env.EMAIL_FROM || 'FlowMeet Concierge <onboarding@resend.dev>' }}\",\n  \"to\": [\"{{ $env.ADMIN_EMAIL || 'youngmj2010@gmail.com' }}\"],\n  \"subject\": \"🛡️ [HITL Escalation • ${{ $('5. Grounded AI Synthesis & Guardrail Evaluator').item.json.scoring_and_routing.estimated_deal_arr_usd }} ARR] {{ $('5. Grounded AI Synthesis & Guardrail Evaluator').item.json.lead.company }} ({{ $('5. Grounded AI Synthesis & Guardrail Evaluator').item.json.lead.email }})\",\n  \"html\": {{ JSON.stringify($('5. Grounded AI Synthesis & Guardrail Evaluator').item.json.synthesized_html) }}\n}",
+        "jsonBody": "={\n  \"from\": \"{{ $env.EMAIL_FROM || 'FlowMeet Concierge <onboarding@resend.dev>' }}\",\n  \"to\": [\"{{ $env.ADMIN_EMAIL || 'yusuf@yusufsaka.dev' }}\"],\n  \"subject\": \"🛡️ [HITL Escalation • ${{ $('5. Grounded AI Synthesis & Guardrail Evaluator').item.json.scoring_and_routing.estimated_deal_arr_usd }} ARR] {{ $('5. Grounded AI Synthesis & Guardrail Evaluator').item.json.lead.company }} ({{ $('5. Grounded AI Synthesis & Guardrail Evaluator').item.json.lead.email }})\",\n  \"html\": {{ JSON.stringify($('5. Grounded AI Synthesis & Guardrail Evaluator').item.json.synthesized_html) }}\n}",
         "method": "POST",
         "options": {
           "timeout": 5000
@@ -429,22 +426,9 @@
       ]
     }
   },
-  "settings": {
-    "executionOrder": "v1",
-    "availableInMCP": true,
-    "binaryMode": "separate",
-    "timeSavedMode": "fixed",
-    "callerPolicy": "workflowsFromSameOwner"
-  },
-  "staticData": null,
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "aiBuilderAssisted": true,
-    "builderVariant": "mcp"
-  },
   "nodeGroups": [
     {
-      "id": "f0809163-037c-4482-bc8d-2e115ce514f6",
+      "id": "group-rust-go",
       "name": "Rust Crawler & Go Concierge",
       "nodeIds": [
         "node-rust-crawler",
@@ -453,7 +437,7 @@
       "description": "Scrapes domain DOM into Markdown via Rust (:8081) and computes 22us ICP score & Cal.com slot via Go (:8082)"
     },
     {
-      "id": "03f5f31c-8f2a-46a6-b9ea-2469df3e60e0",
+      "id": "group-synthesis-audit",
       "name": "Synthesis, Audit & Circuit Breaker",
       "nodeIds": [
         "node-merge-telemetry",
@@ -464,7 +448,7 @@
       "description": "Merges Rust, Go & Python RAG telemetry, synthesizes grounded HTML email, logs to Supabase, and evaluates guardrails"
     },
     {
-      "id": "988ec211-14ac-4001-95ac-5b2c3d0edc85",
+      "id": "group-resend-hitl",
       "name": "Founder HITL Escalation (Resend)",
       "nodeIds": [
         "node-resend-hitl",
@@ -473,7 +457,7 @@
       "description": "Sends Founder HITL escalation alert via Resend API for $65k+ VIP deals or <50% RAG confidence and returns trace"
     },
     {
-      "id": "6dc058f4-d401-46ff-bcf5-5ce421ad8a6b",
+      "id": "group-resend-auto",
       "name": "Zero-Touch Autonomous Dispatch (Resend)",
       "nodeIds": [
         "node-resend-auto",
@@ -482,35 +466,8 @@
       "description": "Auto-dispatches verified technical resolution & Cal.com booking link via Resend API with Safe-Mode domain guard"
     }
   ],
-  "pinData": null,
-  "versionId": "ab60ed53-4471-4a12-8634-7fce482f8f05",
-  "activeVersionId": "ab60ed53-4471-4a12-8634-7fce482f8f05",
-  "versionCounter": 7,
-  "triggerCount": 1,
-  "sourceWorkflowId": null,
-  "tags": [],
-  "shared": [
-    {
-      "updatedAt": "2026-11-05T08:01:45.663Z",
-      "createdAt": "2026-11-05T08:01:45.663Z",
-      "role": "workflow:owner",
-      "workflowId": "FlowMeetPolyglot01",
-      "projectId": "Jn2kqo0Vj1zTm4av",
-      "project": {
-        "updatedAt": "2026-11-05T08:06:09.693Z",
-        "createdAt": "2026-11-05T07:59:59.365Z",
-        "id": "Jn2kqo0Vj1zTm4av",
-        "name": "Yusuf Saka <youngmj2010@gmail.com>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "customTelemetryTags": [],
-        "creatorId": "fd3d78df-a030-47b1-a27b-280b6fef9b9f"
-      }
-    }
-  ],
-  "versionMetadata": {
-    "name": "Remove Secret Fallback & Add Explicit Resend Delivery Confirmation",
-    "description": "Removed hardcoded FLOWMEET_INGEST_SECRET fallback from Node 6 and replaced fallback resend_message_id string in Nodes 9a/9b with explicit delivery_confirmed boolean and CONFIRMED_RESEND_DELIVERY vs UNCONFIRMED_SEND status."
-  }
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
 }

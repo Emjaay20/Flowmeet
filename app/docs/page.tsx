@@ -456,10 +456,10 @@ END:VCALENDAR`}
                                 <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
                                     <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
                                         <span className="font-mono font-bold text-zinc-900">4. Resend Branches &amp; Safe-Mode (Nodes 8a–9b)</span>
-                                        <span className="font-mono text-[10px] text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded border border-purple-200">Verified Delivery ID</span>
+                                        <span className="font-mono text-[10px] text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded border border-purple-200">ACCEPTED_BY_RESEND + Webhooks</span>
                                     </div>
                                     <p className="text-zinc-600">
-                                        Requests passing guardrails enter the autonomous Resend branch (<code className="font-mono text-zinc-800">8b → 9b</code>). Showcase domains (<code className="font-mono text-zinc-800">stripe.com</code>, <code className="font-mono text-zinc-800">linear.app</code>) are redirected by a Safe-Mode guard to protect third-party addresses while returning real Resend confirmation IDs.
+                                        Requests passing guardrails enter the autonomous Resend branch (<code className="font-mono text-zinc-800">8b → 9b</code>). Showcase domains (<code className="font-mono text-zinc-800">stripe.com</code>, <code className="font-mono text-zinc-800">linear.app</code>) are redirected by a Safe-Mode guard to protect third-party addresses, returning <code className="font-mono text-zinc-800">ACCEPTED_BY_RESEND</code> upon API acceptance while subsequent delivery events are tracked via <code className="font-mono text-zinc-800">/api/webhooks/resend</code>.
                                     </p>
                                 </div>
                             </div>

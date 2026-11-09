@@ -120,8 +120,18 @@ export async function POST(req: NextRequest) {
         let resendDelivery: any = {
             mode: requiresHitlApproval ? "FOUNDER_HITL_ESCALATION_ALERT" : "ZERO_TOUCH_AUTONOMOUS_DISPATCH",
             resend_message_id: null,
-            delivery_confirmed: false,
-            delivery_status: "UNCONFIRMED_SEND",
+            accepted_by_resend: false,
+            delivery_status: "UNACCEPTED_SEND",
+            webhook_tracking: {
+                endpoint: "/api/webhooks/resend",
+                tracked_events: [
+                    "email.sent",
+                    "email.delivered",
+                    "email.delivery_delayed",
+                    "email.bounced",
+                    "email.complained",
+                ],
+            },
             recipient: process.env.ADMIN_EMAIL || "yusuf@yusufsaka.dev",
             safe_mode_guard: "DEMO_SAFE_MODE_ACTIVE",
         };
@@ -144,8 +154,18 @@ export async function POST(req: NextRequest) {
                     resendDelivery = {
                         ...n8nData.resend_delivery,
                         resend_message_id: msgId,
-                        delivery_confirmed: Boolean(msgId),
-                        delivery_status: msgId ? "CONFIRMED_RESEND_DELIVERY" : "UNCONFIRMED_SEND",
+                        accepted_by_resend: Boolean(msgId),
+                        delivery_status: msgId ? "ACCEPTED_BY_RESEND" : "UNACCEPTED_SEND",
+                        webhook_tracking: n8nData.resend_delivery.webhook_tracking || {
+                            endpoint: "/api/webhooks/resend",
+                            tracked_events: [
+                                "email.sent",
+                                "email.delivered",
+                                "email.delivery_delayed",
+                                "email.bounced",
+                                "email.complained",
+                            ],
+                        },
                     };
                 }
             }
@@ -246,11 +266,11 @@ export async function POST(req: NextRequest) {
                     name: requiresHitlApproval
                         ? "8a-9a. Resend API: Founder HITL Alert & Webhook Return"
                         : "8b-9b. Resend API: Safe-Mode Autonomous Dispatch & Return",
-                    status: resendDelivery.delivery_confirmed ? "CONFIRMED_RESEND_DELIVERY" : "UNCONFIRMED_SEND",
+                    status: resendDelivery.accepted_by_resend ? "ACCEPTED_BY_RESEND" : "UNACCEPTED_SEND",
                     latency_ms: 140,
-                    output_summary: resendDelivery.delivery_confirmed
-                        ? `Confirmed Resend ID: ${resendDelivery.resend_message_id} -> ${resendDelivery.recipient}`
-                        : `Unconfirmed Send (No Resend ID returned) -> ${resendDelivery.recipient}`,
+                    output_summary: resendDelivery.accepted_by_resend
+                        ? `Accepted by Resend (ID: ${resendDelivery.resend_message_id} -> ${resendDelivery.recipient} • Webhook: /api/webhooks/resend)`
+                        : `Unaccepted Send (No Resend ID returned) -> ${resendDelivery.recipient}`,
                 },
             ],
             payload: {
