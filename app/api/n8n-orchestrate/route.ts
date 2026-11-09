@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 
@@ -151,6 +152,40 @@ export async function POST(req: NextRequest) {
                 ingestLogged = true;
                 if (n8nData?.resend_delivery) {
                     const msgId = n8nData.resend_delivery.resend_message_id || null;
+                    const originatingWorkspaceId =
+                        body.workspace_id ||
+                        process.env.FOUNDER_WORKSPACE_ID ||
+                        process.env.FLOWMEET_PILOT_WORKSPACE_ID ||
+                        null;
+
+                    if (
+                        msgId &&
+                        originatingWorkspaceId &&
+                        process.env.NEXT_PUBLIC_SUPABASE_URL &&
+                        process.env.SUPABASE_SERVICE_KEY
+                    ) {
+                        try {
+                            const db = createClient(
+                                process.env.NEXT_PUBLIC_SUPABASE_URL,
+                                process.env.SUPABASE_SERVICE_KEY
+                            );
+                            await db.from("integration_events").upsert({
+                                id: `resend-msg:${msgId}`,
+                                workspace_id: originatingWorkspaceId,
+                                type: "email.dispatched",
+                                status: "completed",
+                                payload: {
+                                    email_id: msgId,
+                                    workspace_id: originatingWorkspaceId,
+                                    company,
+                                    dispatched_at: new Date().toISOString(),
+                                },
+                            });
+                        } catch {
+                            // Non-blocking if outbound binding upsert fails
+                        }
+                    }
+
                     resendDelivery = {
                         ...n8nData.resend_delivery,
                         resend_message_id: msgId,

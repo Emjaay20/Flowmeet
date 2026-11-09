@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 
@@ -14,16 +14,10 @@ const EVENT_STATUS_MAP: Record<string, string> = {
     "email.clicked": "RECIPIENT_CLICKED",
 };
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Only populated AFTER confirmed database persistence
 const processedSvixIds = new Set<string>();
-const fallbackCounts: Record<string, number> = {
-    SENT_TO_MTA: 0,
-    DELIVERED_TO_MAILBOX: 0,
-    DELIVERY_DELAYED: 0,
-    BOUNCED: 0,
-    COMPLAINED_SPAM: 0,
-    RECIPIENT_OPENED: 0,
-    RECIPIENT_CLICKED: 0,
-};
 
 function verifySvixSignature(
     rawBody: string,
@@ -78,41 +72,127 @@ function verifySvixSignature(
     return false;
 }
 
-export async function GET() {
+function extractWorkspaceTag(data: any): string | null {
+    const tags = data?.tags;
+    if (!tags) return null;
+    if (Array.isArray(tags)) {
+        const match = tags.find((t: any) => t?.name === "workspace_id" && typeof t?.value === "string");
+        if (match && UUID_REGEX.test(match.value)) {
+            return match.value;
+        }
+    } else if (typeof tags === "object" && typeof tags.workspace_id === "string") {
+        if (UUID_REGEX.test(tags.workspace_id)) {
+            return tags.workspace_id;
+        }
+    }
+    return null;
+}
+
+async function resolveOriginatingWorkspace(
+    db: SupabaseClient,
+    emailId: string,
+    data: any
+): Promise<{ workspaceId: string | null; dbError: boolean }> {
+    // 1. Check explicit workspace_id tag attached to the outbound Resend message
+    const taggedWorkspace = extractWorkspaceTag(data);
+    if (taggedWorkspace) {
+        return { workspaceId: taggedWorkspace, dbError: false };
+    }
+
+    // 2. Look up deterministic outbound message-to-workspace binding in integration_events
+    const { data: bindingRow, error: bindingErr } = await db
+        .from("integration_events")
+        .select("workspace_id")
+        .eq("id", `resend-msg:${emailId}`)
+        .maybeSingle();
+
+    if (bindingErr) {
+        return { workspaceId: null, dbError: true };
+    }
+    if (bindingRow?.workspace_id && UUID_REGEX.test(bindingRow.workspace_id)) {
+        return { workspaceId: bindingRow.workspace_id, dbError: false };
+    }
+
+    // 3. Check if any prior verified webhook event for this email_id already resolved the workspace
+    const { data: priorEvent, error: priorErr } = await db
+        .from("integration_events")
+        .select("workspace_id")
+        .eq("payload->>email_id", emailId)
+        .limit(1)
+        .maybeSingle();
+
+    if (priorErr) {
+        return { workspaceId: null, dbError: true };
+    }
+    if (priorEvent?.workspace_id && UUID_REGEX.test(priorEvent.workspace_id)) {
+        return { workspaceId: priorEvent.workspace_id, dbError: false };
+    }
+
+    // 4. Configured pilot/founder workspace UUID (never queries arbitrary rows from workspace_users)
+    const configuredWorkspace =
+        process.env.FOUNDER_WORKSPACE_ID || process.env.FLOWMEET_PILOT_WORKSPACE_ID || null;
+    if (configuredWorkspace && UUID_REGEX.test(configuredWorkspace)) {
+        return { workspaceId: configuredWorkspace, dbError: false };
+    }
+
+    return { workspaceId: null, dbError: false };
+}
+
+export async function GET(req: NextRequest) {
     const counts: Record<string, number> = {
-        SENT_TO_MTA: fallbackCounts.SENT_TO_MTA,
-        DELIVERED_TO_MAILBOX: fallbackCounts.DELIVERED_TO_MAILBOX,
-        DELIVERY_DELAYED: fallbackCounts.DELIVERY_DELAYED,
-        BOUNCED: fallbackCounts.BOUNCED,
-        COMPLAINED_SPAM: fallbackCounts.COMPLAINED_SPAM,
-        RECIPIENT_OPENED: fallbackCounts.RECIPIENT_OPENED,
-        RECIPIENT_CLICKED: fallbackCounts.RECIPIENT_CLICKED,
+        SENT_TO_MTA: 0,
+        DELIVERED_TO_MAILBOX: 0,
+        DELIVERY_DELAYED: 0,
+        BOUNCED: 0,
+        COMPLAINED_SPAM: 0,
+        RECIPIENT_OPENED: 0,
+        RECIPIENT_CLICKED: 0,
     };
+
+    const requestedWorkspace = req.nextUrl.searchParams.get("workspace_id");
+    const defaultWorkspace =
+        process.env.FOUNDER_WORKSPACE_ID || process.env.FLOWMEET_PILOT_WORKSPACE_ID || null;
+    const scopedWorkspaceId =
+        requestedWorkspace && UUID_REGEX.test(requestedWorkspace)
+            ? requestedWorkspace
+            : defaultWorkspace && UUID_REGEX.test(defaultWorkspace)
+            ? defaultWorkspace
+            : null;
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 
-    if (supabaseUrl && supabaseServiceKey) {
-        try {
-            const db = createClient(supabaseUrl, supabaseServiceKey);
-            const { data } = await db
-                .from("integration_events")
-                .select("type")
-                .in("type", Object.keys(EVENT_STATUS_MAP));
+    if (!supabaseUrl || !supabaseServiceKey || !scopedWorkspaceId) {
+        return NextResponse.json(
+            {
+                error: "Database credentials or valid workspace scope not configured",
+            },
+            { status: 503 }
+        );
+    }
 
-            if (Array.isArray(data)) {
-                for (const key of Object.keys(counts)) {
-                    counts[key] = 0;
-                }
-                for (const row of data) {
-                    const status = EVENT_STATUS_MAP[row.type];
-                    if (status) {
-                        counts[status] = (counts[status] || 0) + 1;
-                    }
-                }
+    const db = createClient(supabaseUrl, supabaseServiceKey);
+    const { data, error } = await db
+        .from("integration_events")
+        .select("type")
+        .eq("workspace_id", scopedWorkspaceId)
+        .in("type", Object.keys(EVENT_STATUS_MAP));
+
+    if (error) {
+        return NextResponse.json(
+            {
+                error: "Failed to query scoped delivery metrics",
+            },
+            { status: 503 }
+        );
+    }
+
+    if (Array.isArray(data)) {
+        for (const row of data) {
+            const status = EVENT_STATUS_MAP[row.type];
+            if (status) {
+                counts[status] = (counts[status] || 0) + 1;
             }
-        } catch {
-            // Fall back to in-memory counts if DB query fails
         }
     }
 
@@ -125,10 +205,12 @@ export async function GET() {
         {
             service: "FlowMeet Resend Webhook Lifecycle Tracker",
             endpoint: "/api/webhooks/resend",
+            workspace_scope: "DETERMINISTIC_TENANT_SCOPED",
             security: {
                 signature_verification: "SVIX_HMAC_SHA256_REQUIRED",
                 replay_window_seconds: 300,
                 deduplication: "SVIX_ID_IDEMPOTENT_SUPABASE",
+                failure_handling: "RETRYABLE_503_ON_DB_ERROR",
                 public_exposure: "AGGREGATE_COUNTS_ONLY_NO_PII",
             },
             supported_events: Object.keys(EVENT_STATUS_MAP),
@@ -145,9 +227,16 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
     const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
-    if (!webhookSecret) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+
+    if (!webhookSecret || !supabaseUrl || !supabaseServiceKey) {
         return NextResponse.json(
-            { received: false, error: "Resend webhook signing secret not configured" },
+            {
+                received: false,
+                retryable: true,
+                error: "Webhook signing secret or database configuration missing",
+            },
             { status: 503 }
         );
     }
@@ -195,75 +284,87 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    // Event-ID Deduplication (In-Memory Fast Path)
+    // Fast-path idempotency check (only contains svixIds already durably committed to Supabase)
     if (processedSvixIds.has(svixId!)) {
         return NextResponse.json({
             received: true,
             duplicate: true,
+            persisted: true,
             svix_id: svixId,
             lifecycle_status: lifecycleStatus,
         });
     }
 
-    // Persist to Supabase with Event-ID Deduplication (PostgreSQL Unique Constraint 23505)
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
-    let workspaceId =
-        process.env.FOUNDER_WORKSPACE_ID ||
-        process.env.FLOWMEET_PILOT_WORKSPACE_ID;
+    const db = createClient(supabaseUrl, supabaseServiceKey);
 
-    let persistedToSupabase = false;
-    if (supabaseUrl && supabaseServiceKey) {
-        try {
-            const db = createClient(supabaseUrl, supabaseServiceKey);
-            if (!workspaceId) {
-                const { data: wsRow } = await db
-                    .from("workspace_users")
-                    .select("workspace_id")
-                    .limit(1)
-                    .single();
-                workspaceId = wsRow?.workspace_id;
-            }
+    // Deterministically resolve originating workspace ownership
+    const { workspaceId, dbError } = await resolveOriginatingWorkspace(db, emailId, body.data);
+    if (dbError) {
+        return NextResponse.json(
+            {
+                received: false,
+                retryable: true,
+                error: "Transient database error while resolving workspace ownership",
+            },
+            { status: 503 }
+        );
+    }
 
-            if (workspaceId) {
-                const { error } = await db.from("integration_events").insert({
-                    id: svixId!,
-                    workspace_id: workspaceId,
-                    type: eventType,
-                    status: "completed",
-                    payload: {
-                        svix_id: svixId,
-                        email_id: emailId,
-                        event_type: eventType,
-                        lifecycle_status: lifecycleStatus,
-                        created_at: body?.created_at || new Date().toISOString(),
-                    },
-                });
+    if (!workspaceId) {
+        return NextResponse.json(
+            {
+                received: false,
+                error: "Unable to deterministically resolve originating workspace for email_id",
+            },
+            { status: 422 }
+        );
+    }
 
-                if (error?.code === "23505") {
-                    processedSvixIds.add(svixId!);
-                    return NextResponse.json({
-                        received: true,
-                        duplicate: true,
-                        persisted: true,
-                        svix_id: svixId,
-                        lifecycle_status: lifecycleStatus,
-                    });
-                }
-                persistedToSupabase = !error;
-            }
-        } catch {
-            persistedToSupabase = false;
+    // Persist to Supabase before marking event processed; return 503 on failure so Resend retries
+    const { error: insertError } = await db.from("integration_events").insert({
+        id: svixId!,
+        workspace_id: workspaceId,
+        type: eventType,
+        status: "completed",
+        payload: {
+            svix_id: svixId,
+            email_id: emailId,
+            workspace_id: workspaceId,
+            event_type: eventType,
+            lifecycle_status: lifecycleStatus,
+            created_at: body?.created_at || new Date().toISOString(),
+        },
+    });
+
+    if (insertError) {
+        if (insertError.code === "23505") {
+            processedSvixIds.add(svixId!);
+            return NextResponse.json({
+                received: true,
+                duplicate: true,
+                persisted: true,
+                svix_id: svixId,
+                lifecycle_status: lifecycleStatus,
+            });
         }
+
+        // Do NOT add to processedSvixIds; return 503 so Resend's webhook scheduler retries
+        return NextResponse.json(
+            {
+                received: false,
+                retryable: true,
+                error: "Failed to persist webhook event to database; scheduled for retry",
+            },
+            { status: 503 }
+        );
     }
 
     processedSvixIds.add(svixId!);
-    fallbackCounts[lifecycleStatus] = (fallbackCounts[lifecycleStatus] || 0) + 1;
 
     return NextResponse.json({
         received: true,
         duplicate: false,
-        persisted: persistedToSupabase,
+        persisted: true,
         svix_id: svixId,
         event_type: eventType,
         lifecycle_status: lifecycleStatus,
