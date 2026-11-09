@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
                     "email.complained",
                 ],
             },
-            recipient: process.env.ADMIN_EMAIL || "yusuf@yusufsaka.dev",
+            recipient: "ADMIN_ESCALATION_INBOX",
             safe_mode_guard: "DEMO_SAFE_MODE_ACTIVE",
         };
         let ingestLogged = false;
