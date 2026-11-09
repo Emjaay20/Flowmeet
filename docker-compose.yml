@@ -1,3 +1,5 @@
+name: aetherhost-flowmeet
+
 services:
   flowmeet-web:
     build:
@@ -122,6 +124,8 @@ services:
 
 volumes:
   flowmeet-n8n-data:
+    name: flowmeet_flowmeet-n8n-data
+    external: true
 
 networks:
   flowmeet-internal:

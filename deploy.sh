@@ -29,11 +29,11 @@ rsync -avz --delete \
 
 # 3. Build & Orchestrate on Server
 echo "🔨 [3/4] Building and launching multi-container services..."
-ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5 $SERVER_HOST "cd $REMOTE_DIR && docker compose build && docker compose up -d --remove-orphans"
+ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5 $SERVER_HOST "cd $REMOTE_DIR && docker compose -p aetherhost-flowmeet build && docker compose -p aetherhost-flowmeet up -d --remove-orphans"
 
 # 4. Verify Service Health
 echo "🔍 [4/4] Verifying running containers and health probes..."
-ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5 $SERVER_HOST "cd $REMOTE_DIR && docker compose ps"
+ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5 $SERVER_HOST "cd $REMOTE_DIR && docker compose -p aetherhost-flowmeet ps"
 
 echo ""
 echo "============================================================"
