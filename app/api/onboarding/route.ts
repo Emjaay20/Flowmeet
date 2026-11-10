@@ -30,6 +30,18 @@ export async function POST(req: Request) {
             }
         }
 
+        // 3. Fallback: Lookup by email if user_id wasn't resolved
+        if ((!user_id || !email) && reqEmail) {
+            const { data: usersData, error: listErr } = await supabase.auth.admin.listUsers();
+            if (!listErr && usersData?.users) {
+                const found = usersData.users.find(u => u.email?.toLowerCase() === reqEmail.toLowerCase());
+                if (found) {
+                    user_id = found.id;
+                    email = found.email;
+                }
+            }
+        }
+
         if (!user_id || !email) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }

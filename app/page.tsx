@@ -1,7 +1,6 @@
 import Header from "./components/Header";
 import InteractiveWidget from "./components/InteractiveWidget";
 import FourStepsSection from "./components/FourStepsSection";
-import CareerPitchSection from "./components/CareerPitchSection";
 import VpsSpecsSection from "./components/VpsSpecsSection";
 import PricingSection from "./components/PricingSection";
 import EmbedSection from "./components/EmbedSection";
@@ -19,19 +18,16 @@ export default function Home() {
             {/* 02. Verifiable 4-Step Pipeline: Rust, Go, Cal.com, Python */}
             <FourStepsSection />
 
-            {/* 03. Recruiter Pitch Matrix (Firecrawl, Chili Piper, Luminovo) + Live Rule Builder */}
-            <CareerPitchSection />
-
-            {/* 04. System Specs: 1GB Oracle VPS & Memory Breakdown Bar */}
+            {/* 03.System Specs: 1GB Oracle VPS & Memory Breakdown Bar */}
             <VpsSpecsSection />
 
-            {/* 05. Transparent Stubbed Pricing: Usage API, Success Fee, White-Label */}
+            {/* 04. Transparent Stubbed Pricing: Usage API, Success Fee, White-Label */}
             <PricingSection />
 
-            {/* 06. 1-Line JavaScript Embed + Live Visitor Preview */}
+            {/* 05. 1-Line JavaScript Embed + Live Visitor Preview */}
             <EmbedSection />
 
-            {/* 07. Editorial Footer with System Disclosure & Telemetry */}
+            {/* 06.Editorial Footer with System Disclosure & Telemetry */}
             <Footer />
         </main>
     );

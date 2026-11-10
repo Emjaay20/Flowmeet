@@ -24,7 +24,6 @@ class DeflectResponse(BaseModel):
     direct_answer: str
     recommended_code_snippet: Optional[str] = None
     citations: List[DocCitation]
-    saved_support_minutes: int
     execution_time_ms: float
     timestamp: datetime
     worker_node: str
@@ -39,5 +38,3 @@ class HealthResponse(BaseModel):
     version: str
     engine: str
     indexed_documents: int
-    ram_target: str
-    average_deflection_latency_ms: float

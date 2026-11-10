@@ -2,7 +2,8 @@ package main
 
 import "time"
 
-// RouteRequest represents incoming firmographics from our Rust scraper or live lead forms
+// RouteRequest is the lead data the router scores. Fields come from the
+// scraper's signals or from a lead form.
 type RouteRequest struct {
 	Email             string   `json:"email"`
 	Company           string   `json:"company,omitempty"`
@@ -14,28 +15,30 @@ type RouteRequest struct {
 	ScraperIntent     int      `json:"scraper_intent,omitempty"`
 }
 
-// AssignedMember represents the sales or onboarding specialist matched to the lead
+// AssignedMember is the roster entry a lead is routed to.
 type AssignedMember struct {
-	Name           string `json:"name"`
-	Title          string `json:"title"`
-	Email          string `json:"email"`
-	CalendarURL    string `json:"calendar_url"`
-	Territory      string `json:"territory"`
-	ResponseTimeMs int    `json:"response_time_ms"`
+	Name      string `json:"name"`
+	Title     string `json:"title"`
+	Email     string `json:"email,omitempty"`
+	Territory string `json:"territory"`
 }
 
-// RouteResult represents the sub-50ms decision output produced by the Go Concierge engine
+// RouteResult is the routing decision.
 type RouteResult struct {
-	Status             int            `json:"status"`
-	LeadEmail          string         `json:"lead_email"`
-	Company            string         `json:"company"`
-	FinalICPScore      int            `json:"final_icp_score"`
-	QualificationTier  string         `json:"qualification_tier"`
-	RoutingAction      string         `json:"routing_action"`
-	AssignedMember     *AssignedMember `json:"assigned_member,omitempty"`
-	AutomatedGreeting  string         `json:"automated_greeting"`
-	EstimatedDealARR   int            `json:"estimated_deal_arr_usd"`
-	ExecutionTimeMicro int64          `json:"execution_time_microseconds"`
-	Timestamp          time.Time      `json:"timestamp"`
-	WorkerNode         string         `json:"worker_node"`
+	Status            int             `json:"status"`
+	LeadEmail         string          `json:"lead_email"`
+	Company           string          `json:"company"`
+	FinalICPScore     int             `json:"final_icp_score"`
+	QualificationTier string          `json:"qualification_tier"`
+	RoutingAction     string          `json:"routing_action"`
+	AssignedMember    *AssignedMember `json:"assigned_member,omitempty"`
+	// SampleRoster is true while the roster in roster.go is still the
+	// placeholder one that ships with the repo.
+	SampleRoster bool `json:"sample_roster"`
+	// TierValueUSD is a fixed per-tier constant used for ordering and
+	// escalation rules. It is not a forecast of deal size.
+	TierValueUSD int `json:"tier_value_usd"`
+	// ExecutionTimeNs is the measured time spent inside EvaluateRoute.
+	ExecutionTimeNs int64     `json:"execution_time_ns"`
+	Timestamp       time.Time `json:"timestamp"`
 }

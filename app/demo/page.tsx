@@ -1,18 +1,23 @@
-"use client"; // client component for useState and event handlers
+"use client";
+
 import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
 
 function LeadForm() {
     const [status, setStatus] = useState("");
+    const [loading, setLoading] = useState(false);
     const searchParams = useSearchParams();
-    const userId = searchParams.get("userId"); // Get user ID from URL (e.g. ?userId=...)
+    const userId = searchParams.get("userId");
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setLoading(true);
+        setStatus("");
         const form = e.currentTarget;
         const formData = {
-            userId, // Pass the identified user to the backend
+            userId,
             name: (form.elements.namedItem("name") as HTMLInputElement).value,
             email: (form.elements.namedItem("email") as HTMLInputElement).value,
             company: (form.elements.namedItem("company") as HTMLInputElement).value,
@@ -20,93 +25,146 @@ function LeadForm() {
             region: (form.elements.namedItem("region") as HTMLSelectElement).value,
         };
 
-        const res = await fetch("/api/leads", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(formData),
-        });
+        try {
+            const res = await fetch("/api/leads", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(formData),
+            });
 
-        const data = await res.json();
+            const data = await res.json();
 
-        if (data.qualified && data.bookingUrl) {
-            //  AUTO-ROUTE TO MEETING
-            window.location.href = data.bookingUrl;
-        } else {
-            setStatus("Thanks! Our team will reach out shortly.");
-            form.reset();
+            if (data.qualified && data.bookingUrl) {
+                window.location.href = data.bookingUrl;
+            } else {
+                setStatus("Thanks! Your submission was qualified and queued for routing.");
+                form.reset();
+                setLoading(false);
+            }
+        } catch (err) {
+            setStatus("Unable to route at this moment. Please try again.");
+            setLoading(false);
         }
     };
 
     return (
-        <main className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6 font-sans">
-            <h1 className="text-4xl font-extrabold mb-4 text-gray-900 tracking-tight">FlowMeet Demo</h1>
-            <p className="text-lg mb-8 text-center max-w-xl text-gray-600 leading-relaxed">
-                Test our lead qualification engine below.
-            </p>
+        <main className="min-h-screen flex flex-col items-center justify-center bg-[#fcfcf9] p-6 font-sans relative selection:bg-[#c8f944]">
+            <Link
+                href="/"
+                className="absolute top-6 left-6 md:top-8 md:left-8 flex items-center gap-2 text-xs font-mono font-medium text-zinc-600 hover:text-zinc-950 transition-colors"
+            >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Back to Flowmeet</span>
+            </Link>
 
-            <form className="flex flex-col gap-5 w-full max-w-md bg-white p-8 rounded-xl shadow-lg border border-gray-100" onSubmit={handleSubmit}>
-                <div className="space-y-4">
-                    <input
-                        type="text"
-                        name="name"
-                        placeholder="Your Name"
-                        className="w-full border border-gray-200 p-3 rounded-lg placeholder-gray-400 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
-                        required
-                    />
-                    <input
-                        type="email"
-                        name="email"
-                        placeholder="Your Email"
-                        className="w-full border border-gray-200 p-3 rounded-lg placeholder-gray-400 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
-                        required
-                    />
-                    <input
-                        type="text"
-                        name="company"
-                        placeholder="Company"
-                        className="w-full border border-gray-200 p-3 rounded-lg placeholder-gray-400 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
-                        required
-                    />
-                    <input
-                        type="text"
-                        name="role"
-                        placeholder="Role"
-                        className="w-full border border-gray-200 p-3 rounded-lg placeholder-gray-400 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
-                        required
-                    />
-                    <select
-                        name="region"
-                        defaultValue=""
-                        className="w-full border border-gray-200 p-3 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm bg-white"
-                        required
+            <div className="w-full max-w-md space-y-6 bg-white p-8 rounded-3xl border border-zinc-200/90 shadow-sm">
+                <div className="text-center space-y-2">
+                    <div className="w-8 h-8 bg-zinc-950 rounded-lg flex items-center justify-center text-white font-editorial text-lg font-semibold mx-auto mb-2">
+                        F
+                    </div>
+                    <h1 className="font-editorial text-3xl font-normal tracking-tight text-zinc-950">
+                        Flowmeet Form Demo
+                    </h1>
+                    <p className="text-xs text-zinc-500 font-sans">
+                        Simulate an inbound buyer submitting a standard web form
+                    </p>
+                </div>
+
+                <form className="space-y-3.5" onSubmit={handleSubmit}>
+                    <div>
+                        <label className="block text-xs font-mono font-medium text-zinc-700 mb-1">Full Name</label>
+                        <input
+                            type="text"
+                            name="name"
+                            placeholder="Alex Rivera"
+                            className="block w-full rounded-xl border border-zinc-300 py-2.5 px-3 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-950 text-sm font-sans transition-all"
+                            required
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-mono font-medium text-zinc-700 mb-1">Corporate Email</label>
+                        <input
+                            type="email"
+                            name="email"
+                            placeholder="alex@stripe.com"
+                            className="block w-full rounded-xl border border-zinc-300 py-2.5 px-3 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-950 text-sm font-sans transition-all"
+                            required
+                        />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-xs font-mono font-medium text-zinc-700 mb-1">Company</label>
+                            <input
+                                type="text"
+                                name="company"
+                                placeholder="Stripe"
+                                className="block w-full rounded-xl border border-zinc-300 py-2.5 px-3 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-950 text-sm font-sans transition-all"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-mono font-medium text-zinc-700 mb-1">Role</label>
+                            <input
+                                type="text"
+                                name="role"
+                                placeholder="VP Eng"
+                                className="block w-full rounded-xl border border-zinc-300 py-2.5 px-3 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-950 text-sm font-sans transition-all"
+                                required
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-mono font-medium text-zinc-700 mb-1">Region</label>
+                        <select
+                            name="region"
+                            defaultValue=""
+                            className="block w-full rounded-xl border border-zinc-300 py-2.5 px-3 text-zinc-900 bg-white focus:outline-none focus:border-zinc-950 text-sm font-sans transition-all"
+                            required
+                        >
+                            <option value="" disabled>Select Region</option>
+                            <option value="EMEA">EMEA (Europe, Middle East, Africa)</option>
+                            <option value="NA">NA (North America)</option>
+                            <option value="APAC">APAC (Asia-Pacific)</option>
+                        </select>
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="group relative flex w-full justify-center items-center gap-2 rounded-xl bg-zinc-950 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-zinc-800 transition-all cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed mt-2"
                     >
-                        <option value="" disabled>Select Region</option>
-                        <option value="EMEA">EMEA</option>
-                        <option value="NA">North America</option>
-                        <option value="APAC">APAC</option>
-                    </select>
-                </div>
-                <button
-                    type="submit"
-                    className="w-full bg-blue-600 text-white font-semibold p-3 rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-600/20 transition-all transform active:scale-[0.98]"
-                >
-                    Book a Meeting
-                </button>
-            </form>
+                        {loading ? (
+                            <span className="flex items-center gap-2">
+                                <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                Qualifying lead...
+                            </span>
+                        ) : (
+                            <>
+                                <span>Submit &amp; Route</span>
+                                <ArrowRight className="w-3.5 h-3.5 text-[#c8f944]" />
+                            </>
+                        )}
+                    </button>
+                </form>
 
-            {status && (
-                <div className="mt-6 p-4 bg-green-50 text-green-700 rounded-lg border border-green-100 flex items-center gap-2 animate-fade-in">
-                    <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                    {status}
-                </div>
-            )}
+                {status && (
+                    <div className="p-3.5 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200 text-xs font-sans flex items-start gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                        <span>{status}</span>
+                    </div>
+                )}
+            </div>
         </main>
     );
 }
 
 export default function DemoPage() {
     return (
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={
+            <div className="min-h-screen bg-[#fcfcf9] flex items-center justify-center font-mono text-xs text-zinc-400">
+                Loading demo...
+            </div>
+        }>
             <LeadForm />
         </Suspense>
     );

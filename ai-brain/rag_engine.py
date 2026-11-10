@@ -1,6 +1,9 @@
 """
-FlowMeet RAG Engine & Autonomous Ticket Deflection Specialist.
-Lightweight vector semantic similarity retriever designed for < 50MB RAM footprints on Oracle Linux VPS.
+Flowmeet docs search.
+
+TF-IDF cosine similarity over a small in-memory list of documents, plus a
+keyword boost. There are no embeddings and no language model. The score is a
+relevance score scaled to 0-100, not a probability.
 """
 
 import math
@@ -30,6 +33,13 @@ def tokenize(text: str) -> List[str]:
     cleaned = re.sub(r"[^\w\s-]", " ", text.lower())
     tokens = [t for t in cleaned.split() if len(t) > 1 and t not in STOPWORDS]
     return tokens
+
+# Hand-set thresholds, tuned on a handful of questions. Below the floor nothing
+# is returned; between the floor and the threshold the match is shown but the
+# question is still marked for a person.
+ANSWER_FLOOR = 35.0
+ANSWER_THRESHOLD = 40.0
+
 
 class SemanticRAGEngine:
     def __init__(self, docs: List[Dict[str, Any]]):
@@ -119,24 +129,22 @@ class SemanticRAGEngine:
 
         elapsed_ms = round((time.time() - start_time) * 1000, 2)
 
-        if not results or results[0][1] < 35.0:
+        if not results or results[0][1] < ANSWER_FLOOR:
             # Low confidence - escalate to human solutions architect
             return DeflectResponse(
                 status=200,
                 query=query,
                 resolution_status="HUMAN_ESCALATION_RECOMMENDED",
-                confidence_score=results[0][1] if results else 18.0,
+                confidence_score=results[0][1] if results else 0.0,
                 direct_answer=(
-                    f"We could not resolve this inquiry autonomously with high confidence. "
-                    f"Our Product Enablement triage engine has assigned this ticket to a Senior Solutions Engineer "
-                    f"with priority routing for {company}."
+                    "No document matched this question well enough to answer it. "
+                    "A person should take this one."
                 ),
                 recommended_code_snippet=None,
                 citations=[],
-                saved_support_minutes=0,
                 execution_time_ms=elapsed_ms,
                 timestamp=time.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                worker_node="python-fastapi-ai-brain-01"
+                worker_node="flowmeet-docs-search"
             )
 
         top_doc, top_score = results[0]
@@ -154,12 +162,12 @@ class SemanticRAGEngine:
             ))
 
         # Autonomous resolution response
-        resolution_status = "AUTONOMOUS_DEFLECTION_SUCCESS" if top_score >= 50.0 else "HUMAN_ESCALATION_RECOMMENDED"
+        resolution_status = "AUTONOMOUS_DEFLECTION_SUCCESS" if top_score >= ANSWER_THRESHOLD else "HUMAN_ESCALATION_RECOMMENDED"
         
         answer = (
-            f"Here is the verified technical resolution regarding '{top_doc['title']}':\n\n"
+            f"{top_doc['title']}\n\n"
             f"{top_doc['content']}\n\n"
-            f"For more details, review the documentation at {top_doc['url']}."
+            f"More: {top_doc['url']}"
         )
 
         return DeflectResponse(
@@ -170,10 +178,9 @@ class SemanticRAGEngine:
             direct_answer=answer,
             recommended_code_snippet=top_doc.get("code_snippet"),
             citations=citations,
-            saved_support_minutes=25 if resolution_status == "AUTONOMOUS_DEFLECTION_SUCCESS" else 5,
             execution_time_ms=elapsed_ms,
             timestamp=time.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            worker_node="python-fastapi-ai-brain-01"
+            worker_node="flowmeet-docs-search"
         )
 
 # Global engine instance

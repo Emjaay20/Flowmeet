@@ -14,6 +14,7 @@ use tower_http::cors::{Any, CorsLayer};
 use tracing::{info, error};
 use tracing_subscriber::EnvFilter;
 use crate::scraper::{perform_scrape, ScrapeRequest};
+use crate::signals::analyze_signals;
 
 #[tokio::main]
 async fn main() {
@@ -22,8 +23,7 @@ async fn main() {
         .with_env_filter(EnvFilter::from_default_env().add_directive("flowmeet_crawler=info".parse().unwrap()))
         .init();
 
-    info!("Initializing FlowMeet High-Throughput Rust Crawler Service v2.0...");
-    info!("Target Infrastructure: Oracle Linux 1GB VPS Edge Node (Memory cgroup limit: ~245MB)");
+    info!("flowmeet-crawler starting");
 
     // Configure CORS for Next.js frontend and local dev testing
     let cors = CorsLayer::new()
@@ -36,32 +36,22 @@ async fn main() {
         .route("/", get(health_check))
         .route("/health", get(health_check))
         .route("/scrape", post(handle_scrape))
+        .route("/analyze", post(handle_analyze))
         .layer(cors);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8081));
-    info!("🚀 Rust Crawler Listening on http://{}", addr);
+    info!("listening on http://{}", addr);
 
     let listener = tokio::net::TcpListener::bind(addr).await.expect("Failed to bind TCP port 8081");
     axum::serve(listener, app).await.expect("Failed to start Axum HTTP server");
 }
 
-/// Health & telemetry diagnostics endpoint
+/// Liveness probe
 async fn health_check() -> impl IntoResponse {
     Json(json!({
-        "status": "operational",
-        "service": "flowmeet-rust-crawler",
-        "version": "2.0.0",
-        "engine": "Axum / Tokio / Scraper",
-        "capabilities": [
-            "Web-to-LLM HTML to Markdown extraction (Firecrawl standard)",
-            "B2B Firmographic signal & pricing tier discovery",
-            "Real-time tech stack signature recognition"
-        ],
-        "vps_optimization": {
-            "target_host": "Oracle Cloud Free Tier VPS (1GB RAM / ARM64 & x86_64)",
-            "runtime_ram_usage": "~14MB (Static stripped binary)",
-            "cgroup_mem_limit": "245MB max ceiling"
-        }
+        "status": "ok",
+        "service": "flowmeet-crawler",
+        "version": env!("CARGO_PKG_VERSION"),
     }))
 }
 
@@ -76,9 +66,22 @@ async fn handle_scrape(Json(payload): Json<ScrapeRequest>) -> impl IntoResponse 
         Err(e) => {
             error!("Scraping failed: {}", e);
             (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": "Failed to extract B2B intelligence", "details": e })),
+                StatusCode::BAD_GATEWAY,
+                Json(json!({ "error": "scrape failed", "details": e })),
             )
         }
     }
+}
+
+#[derive(serde::Deserialize)]
+struct AnalyzeRequest {
+    url: String,
+    markdown: String,
+}
+
+/// POST /analyze: run the same keyword signals over text fetched elsewhere
+/// (for example by Firecrawl), so both paths use one detector.
+async fn handle_analyze(Json(payload): Json<AnalyzeRequest>) -> impl IntoResponse {
+    let signals = analyze_signals(&payload.url, "", &payload.markdown);
+    (StatusCode::OK, Json(json!({ "firmographic_signals": signals })))
 }

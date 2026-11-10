@@ -232,7 +232,7 @@ export default function InteractiveWidget() {
                                     <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" /> Real DOM scraping
                                 </span>
                                 <span className="flex items-center gap-1">
-                                    <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" /> 22μs Go territory rules
+                                    <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" /> Rule-based ICP scoring
                                 </span>
                                 <span className="flex items-center gap-1">
                                     <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" /> Cal.com instant booking
@@ -273,8 +273,8 @@ export default function InteractiveWidget() {
                                             <Terminal className="w-6 h-6 animate-pulse" />
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-zinc-300 font-sans font-medium text-sm">Empower your GTM with live polyglot execution</p>
-                                            <p className="text-zinc-500 text-xs">Enter any corporate email or click a chip on the left to start live DOM crawling, scoring &amp; calendar reservation.</p>
+                                            <p className="text-zinc-300 font-sans font-medium text-sm">Live inbound enrichment &amp; routing</p>
+                                            <p className="text-zinc-500 text-xs">Enter any corporate email or click a sample domain above to run real-time DOM scraping, scoring &amp; calendar reservation.</p>
                                         </div>
                                     </div>
                                 )}
@@ -329,7 +329,7 @@ export default function InteractiveWidget() {
                                             </div>
                                             <div className="p-2 bg-zinc-900 rounded border border-zinc-800">
                                                 <div className="text-zinc-500 text-[10px]">DETECTED TECH</div>
-                                                <div className="font-bold text-zinc-200 mt-0.5 truncate">{streamedPayload.tech_stack?.slice(0, 2).join(", ") || "Next.js"}</div>
+                                                <div className="font-bold text-zinc-200 mt-0.5 truncate">{streamedPayload.tech_stack?.slice(0, 2).join(", ") || "None detected"}</div>
                                             </div>
                                         </div>
 
@@ -377,8 +377,12 @@ export default function InteractiveWidget() {
                                             )}
                                         </div>
 
+                                        <div className="text-[10px] text-zinc-500 font-mono text-center pt-1 border-t border-zinc-850">
+                                            Score and tier come from keyword matching on the homepage. They are a rough signal, not an ARR forecast.
+                                        </div>
+
                                         <div className="text-[10px] text-zinc-500 text-center font-mono flex items-center justify-between pt-1">
-                                            <span>Est. Deal ARR: ${streamedPayload.estimated_deal_arr_usd?.toLocaleString() || "65,000"}</span>
+                                            <span>Source: {streamedPayload.source_url || streamedPayload.domain}</span>
                                             <button
                                                 onClick={handleReset}
                                                 className="text-zinc-400 hover:text-zinc-200 underline cursor-pointer"

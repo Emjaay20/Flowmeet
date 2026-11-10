@@ -1,190 +1,50 @@
 import { NextResponse } from "next/server";
+import { checkRateLimit, clientIp } from "@/app/lib/cache";
 
-export async function OPTIONS() {
-    return new NextResponse(null, {
-        status: 200,
-        headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization, x-flowmeet-api-key",
-        },
-    });
-}
+const conciergeUrl = () => process.env.GOLANG_CONCIERGE_URL || "http://127.0.0.1:8082";
 
+/**
+ * Proxies a routing request to the Go service and returns its answer as-is,
+ * along with the measured round trip. If the service is down this returns an
+ * error; it never substitutes its own decision.
+ */
 export async function POST(req: Request) {
-    const startTime = Date.now();
+    const started = Date.now();
+
+    if (!checkRateLimit(`route:${clientIp(req)}`).allowed) {
+        return NextResponse.json({ success: false, error: "Rate limited" }, { status: 429 });
+    }
+
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body.email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
+        return NextResponse.json({ success: false, error: "A valid email is required" }, { status: 400 });
+    }
+
+    const payload = {
+        email: body.email,
+        company: typeof body.company === "string" ? body.company.slice(0, 120) : "",
+        role: typeof body.role === "string" ? body.role.slice(0, 120) : "",
+        region: typeof body.region === "string" ? body.region.slice(0, 60) : "",
+        employees: Number.isFinite(body.employees) ? Math.max(0, Math.floor(body.employees)) : 0,
+        estimated_tier: typeof body.estimated_tier === "string" ? body.estimated_tier.slice(0, 60) : "",
+        detected_tech_stack: Array.isArray(body.detected_tech_stack) ? body.detected_tech_stack.slice(0, 20).map(String) : [],
+        scraper_intent: Number.isFinite(body.scraper_intent) ? Math.floor(body.scraper_intent) : 0,
+    };
+
     try {
-        const body = await req.json();
-        const {
-            email = "vp_engineering@stripe.com",
-            company = "Stripe",
-            role = "VP Engineering",
-            region = "Americas (San Francisco)",
-            employees = 3500,
-            estimated_tier = "Enterprise Account (1,000+ Employees)",
-            detected_tech_stack = ["Next.js", "Kubernetes", "Rust Infra"],
-            scraper_intent = 92,
-        } = body;
-
-        // 1. Attempt connection to dedicated GoLang Goroutine Microservice (Running on Port 8082 in Docker / Oracle VPS)
-        const goServiceUrl = process.env.GOLANG_CONCIERGE_URL || "http://127.0.0.1:8082";
-
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3000); // 3-second fail-fast timeout
-
-            const goRes = await fetch(`${goServiceUrl}/route`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    email,
-                    company,
-                    role,
-                    region,
-                    employees,
-                    estimated_tier,
-                    detected_tech_stack,
-                    scraper_intent,
-                }),
-                signal: controller.signal,
-            });
-
-            clearTimeout(timeoutId);
-
-            if (goRes.ok) {
-                const goData = await goRes.json();
-                return NextResponse.json(
-                    {
-                        success: true,
-                        engine: "GoLang 1.22 Sub-50ms Goroutine Concierge (Port 8082)",
-                        latency_ms: Date.now() - startTime,
-                        data: goData,
-                    },
-                    {
-                        status: 200,
-                        headers: {
-                            "Access-Control-Allow-Origin": "*",
-                            "x-flowmeet-engine": "golang-goroutine-concierge",
-                        },
-                    }
-                );
-            }
-        } catch (error) {
-            // Go worker not active or offline; proceeding to seamless high-fidelity edge rules simulation fallback
-            console.warn("[Telemetry] Go Concierge worker unavailable at", goServiceUrl, "- utilizing Edge rules fallback.");
-        }
-
-        // 2. High-Fidelity Edge Rules Simulation (Ensures zero downtime for live demos and API buyers)
-        let icpScore = scraper_intent || 60;
-        if (employees >= 1000) icpScore = Math.min(99, icpScore + 15);
-        if (role.toLowerCase().includes("vp") || role.toLowerCase().includes("chief") || role.toLowerCase().includes("cto")) {
-            icpScore = Math.min(99, icpScore + 10);
-        }
-
-        const regionLower = region.toLowerCase();
-        let assignedMember;
-        let tier;
-        let action;
-        let greeting;
-        let dealARR;
-
-        if (icpScore >= 85) {
-            tier = "VIP_ENTERPRISE_INSTANT";
-            action = "INSTANT_VIP_CALENDAR_LOCK";
-            dealARR = 65000;
-
-            if (regionLower.includes("emea") || regionLower.includes("europe") || regionLower.includes("germany") || regionLower.includes("uk")) {
-                assignedMember = {
-                    name: "Elena Rostova",
-                    title: "VP Enterprise RevOps (EMEA & Strategic Accounts)",
-                    email: "elena.rostova@flowmeet.ai",
-                    calendar_url: "https://flowmeet.ai/calendar/elena-vip-15m",
-                    territory: "EMEA Strategic HQ (Munich / London)",
-                    response_time_ms: 45,
-                };
-            } else if (regionLower.includes("apac") || regionLower.includes("asia") || regionLower.includes("australia")) {
-                assignedMember = {
-                    name: "Marcus Tan",
-                    title: "Head of APAC Enterprise Engineering & Sales",
-                    email: "marcus.tan@flowmeet.ai",
-                    calendar_url: "https://flowmeet.ai/calendar/marcus-vip-15m",
-                    territory: "APAC Expansion (Singapore / Tokyo)",
-                    response_time_ms: 50,
-                };
-            } else {
-                assignedMember = {
-                    name: "Yusuf Abubakar",
-                    title: "Founder & Lead Systems Architect (Americas & Global)",
-                    email: "yusuf@yusufsaka.dev",
-                    calendar_url: "https://cal.com/yusuf-abubakar/15min",
-                    territory: "Executive Strategic (Americas & Global)",
-                    response_time_ms: 40,
-                };
-            }
-
-            greeting = `Hello! Our Go rules engine recognized your high-intent enterprise profile at ${company} (${employees}+ team size). Continue to the calendar provider to view availability. No meeting has been reserved.`;
-        } else if (icpScore >= 65) {
-            tier = "COMMERCIAL_PRIORITY";
-            action = "PRIORITY_DEMO_SCHEDULER";
-            dealARR = 24000;
-            assignedMember = {
-                name: "Alex Mercer",
-                title: "Commercial & Growth Account Executive",
-                email: "alex.mercer@flowmeet.ai",
-                calendar_url: "https://flowmeet.ai/calendar/alex-growth-30m",
-                territory: "Global Growth & Scale Up Tier",
-                response_time_ms: 110,
-            };
-            greeting = `Welcome to FlowMeet! Our high-concurrency router has assigned you to our priority commercial growth queue. Click to select your preferred onboarding demo time with ${assignedMember.name}.`;
-        } else {
-            tier = "SELF_SERVE_DEFLECT";
-            action = "AUTONOMOUS_DOCS_TRIAGE";
-            dealARR = 4900;
-            assignedMember = {
-                name: "FlowMeet Fin-AI Onboarding Brain",
-                title: "Autonomous AI Product Enablement Specialist",
-                email: "ai.enablement@flowmeet.ai",
-                calendar_url: "https://flowmeet.ai/docs/quickstart-api",
-                territory: "Cloud Edge Autonomous Portal",
-                response_time_ms: 5,
-            };
-            greeting = `Hello! Our system detected an independent developer or early startup evaluation profile for ${company}. To provide instant answers without waiting for a human SDR, we have unlocked full API documentation, interactive Rust scraping sandboxes, and vector RAG triage access.`;
-        }
-
+        const res = await fetch(`${conciergeUrl()}/route`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            signal: AbortSignal.timeout(3000),
+            body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error(`routing service returned HTTP ${res.status}`);
+        const data = await res.json();
+        return NextResponse.json({ success: true, round_trip_ms: Date.now() - started, data });
+    } catch (e) {
         return NextResponse.json(
-            {
-                success: true,
-                engine: "Next.js Edge Polyglot Rules Fallback (TypeScript)",
-                latency_ms: Date.now() - startTime,
-                data: {
-                    status: 200,
-                    lead_email: email,
-                    company,
-                    final_icp_score: icpScore,
-                    qualification_tier: tier,
-                    routing_action: action,
-                    assigned_member: assignedMember,
-                    automated_greeting: greeting,
-                    estimated_deal_arr_usd: dealARR,
-                    execution_time_microseconds: null,
-                    timestamp: new Date().toISOString(),
-                    worker_node: "typescript-fallback",
-                    demo: true,
-                },
-            },
-            {
-                status: 200,
-                headers: {
-                    "Access-Control-Allow-Origin": "*",
-                    "x-flowmeet-engine": "typescript-edge-rules-fallback",
-                },
-            }
-        );
-    } catch (err: any) {
-        console.error("Route Lead Error:", err);
-        return NextResponse.json(
-            { success: false, error: err.message || "Failed to evaluate routing rules" },
-            { status: 500 }
+            { success: false, error: `Routing service unavailable: ${e instanceof Error ? e.message : "error"}` },
+            { status: 502 },
         );
     }
 }

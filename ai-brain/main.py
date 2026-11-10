@@ -1,7 +1,8 @@
 """
-FlowMeet Python AI Enablement Brain & Ticket Deflection Microservice.
-Provides sub-second technical resolution, documentation citations, and Level-1 ticket deflection.
-Port: 8083
+Flowmeet docs search service (port 8083).
+
+Answers a question with the best-matching documentation entry and its
+citation, or says a person should answer when nothing matches well.
 """
 
 import time
@@ -13,8 +14,8 @@ from models import DeflectRequest, DeflectResponse, SearchRequest, HealthRespons
 from rag_engine import rag_engine, KNOWLEDGE_DOCUMENTS
 
 app = FastAPI(
-    title="FlowMeet AI Enablement Brain",
-    description="Product enablement, technical document RAG retrieval, and autonomous ticket deflection service.",
+    title="Flowmeet docs search",
+    description="TF-IDF search over the Flowmeet documentation.",
     version="2.0.0"
 )
 
@@ -36,13 +37,11 @@ DEFLECTED_QUERIES = 0
 def health():
     """Operational liveness probe and memory telemetry."""
     return HealthResponse(
-        status="operational",
-        service="flowmeet-ai-brain",
+        status="ok",
+        service="flowmeet-docs-search",
         version="2.0.0",
-        engine="FastAPI + Pure Python Semantic RAG (Zero-PyTorch Overhead)",
+        engine="FastAPI + TF-IDF",
         indexed_documents=len(KNOWLEDGE_DOCUMENTS),
-        ram_target="< 60MB RAM (Optimized for Oracle Linux 1GB VPS)",
-        average_deflection_latency_ms=1.45
     )
 
 @app.post("/ai/deflect", response_model=DeflectResponse)
@@ -89,15 +88,13 @@ def search_docs(payload: SearchRequest):
     }
 
 @app.get("/ai/stats")
-def enablement_kpis():
-    """Returns real-time Product Enablement & RevOps deflection statistics."""
-    deflection_rate = round((DEFLECTED_QUERIES / max(1, PROCESSED_QUERIES)) * 100, 1)
+def stats():
+    """Counters since the process started. Nothing is seeded."""
     return {
         "uptime_seconds": int(time.time() - START_TIME),
-        "total_tickets_analyzed": max(PROCESSED_QUERIES, 142),  # Seed baseline for live demo
-        "deflection_rate_percentage": deflection_rate if PROCESSED_QUERIES > 0 else 76.4,
-        "human_engineering_hours_saved": round(max(PROCESSED_QUERIES, 142) * 0.42, 1),
-        "top_inquiry_categories": ["API Authentication", "SAML 2.0 SSO", "Webhook HMAC", "Rate Limits"]
+        "questions_seen": PROCESSED_QUERIES,
+        "answered_from_docs": DEFLECTED_QUERIES,
+        "answer_rate_percent": round(DEFLECTED_QUERIES / PROCESSED_QUERIES * 100, 1) if PROCESSED_QUERIES else None,
     }
 
 if __name__ == "__main__":

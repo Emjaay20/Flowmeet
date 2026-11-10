@@ -144,7 +144,7 @@ export default function DocsPage() {
                                 02. Salesforce CRM &amp; L2A Sync
                             </a>
                             <a href="#adr-003" className="block text-zinc-600 hover:text-zinc-950 hover:underline">
-                                03. Chili Piper Equivalence
+                                03. Architecture vs Chili Piper
                             </a>
                             <a href="#adr-004" className="block text-zinc-600 hover:text-zinc-950 hover:underline">
                                 04. Firecrawl &amp; 24h Caching
@@ -271,34 +271,34 @@ END:VCALENDAR`}
                             </div>
                         </section>
 
-                        {/* ADR 003: Chili Piper Product Equivalence */}
+                        {/* ADR 003: Architecture Comparison vs Chili Piper */}
                         <section id="adr-003" className="bg-white rounded-3xl border border-zinc-200/90 shadow-sm p-6 sm:p-10 space-y-6">
                             <div className="flex items-center gap-2 text-xs font-mono text-zinc-500 pb-2 border-b border-zinc-100">
                                 <Zap className="w-4 h-4 text-zinc-900" />
-                                <span className="font-bold text-zinc-950">ADR-003</span> • PRODUCT EQUIVALENCE MATRIX
+                                <span className="font-bold text-zinc-950">ADR-003</span> • ARCHITECTURAL COMPARISON: CHILI PIPER ALTERNATIVE
                             </div>
                             <h2 className="font-editorial text-3xl sm:text-4xl font-normal text-zinc-950 tracking-tight">
-                                Alignment with Chili Piper&apos;s Demand Conversion Platform
+                                Self-Hosted Alternative to Chili Piper
                             </h2>
                             <p className="text-sm text-zinc-600 leading-relaxed font-sans">
-                                Flowmeet was intentionally engineered to mirror the operational lifecycle of Chili Piper&apos;s three flagship products:
+                                Flowmeet provides an open, self-hostable alternative to commercial inbound conversion software. Here is how Flowmeet&apos;s modular microservices map to the capabilities of Chili Piper:
                             </p>
 
                             <div className="space-y-4 text-xs font-sans">
                                 <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                     <div>
-                                        <strong className="text-zinc-950 block text-sm">Chili Piper Form Concierge</strong>
+                                        <strong className="text-zinc-950 block text-sm">Form Concierge Equivalent</strong>
                                         <p className="text-zinc-600">Interception of website form submissions, live domain qualification, and instant calendar presentation without page refresh.</p>
                                     </div>
                                     <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-mono text-[10px] font-bold whitespace-nowrap">
-                                        Flowmeet Scraper + SSE Stream
+                                        Flowmeet Rust Scraper + SSE Stream
                                     </span>
                                 </div>
 
                                 <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                     <div>
-                                        <strong className="text-zinc-950 block text-sm">Chili Piper Distro</strong>
-                                        <p className="text-zinc-600">Lead-to-Account matching, round-robin rules, and territory assignment in under 50ms based on Salesforce ownership.</p>
+                                        <strong className="text-zinc-950 block text-sm">Distro Routing Equivalent</strong>
+                                        <p className="text-zinc-600">Lead qualification, territory scoring, and deterministic rep assignment in microseconds based on rules and region.</p>
                                     </div>
                                     <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-mono text-[10px] font-bold whitespace-nowrap">
                                         Flowmeet Go Concierge (:8082)
@@ -307,8 +307,8 @@ END:VCALENDAR`}
 
                                 <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                     <div>
-                                        <strong className="text-zinc-950 block text-sm">Chili Piper Instant Booker / Handoff</strong>
-                                        <p className="text-zinc-600">Cal.com / Google Calendar API invocation, meeting invitation dispatch, and real-time CRM event logging.</p>
+                                        <strong className="text-zinc-950 block text-sm">Instant Booker / Handoff Equivalent</strong>
+                                        <p className="text-zinc-600">Cal.com API integration, in-session slot picker, and RFC 5545 calendar invitation dispatch via Resend.</p>
                                     </div>
                                     <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-mono text-[10px] font-bold whitespace-nowrap">
                                         Flowmeet /api/book-slot + Resend
@@ -317,37 +317,37 @@ END:VCALENDAR`}
                             </div>
                         </section>
 
-                        {/* ADR 004: Firecrawl & Luminovo Integration */}
+                        {/* ADR 004: In-House Rust Scraper & Firecrawl Integration */}
                         <section id="adr-004" className="bg-white rounded-3xl border border-zinc-200/90 shadow-sm p-6 sm:p-10 space-y-6">
                             <div className="flex items-center gap-2 text-xs font-mono text-zinc-500 pb-2 border-b border-zinc-100">
                                 <Cpu className="w-4 h-4 text-zinc-900" />
-                                <span className="font-bold text-zinc-950">ADR-004</span> • FIRECRAWL &amp; LUMINOVO PIPELINE
+                                <span className="font-bold text-zinc-950">ADR-004</span> • RUST SCRAPER, FIRECRAWL &amp; TF-IDF SEARCH
                             </div>
                             <h2 className="font-editorial text-3xl sm:text-4xl font-normal text-zinc-950 tracking-tight">
-                                Firecrawl LLM Scraping &amp; Luminovo RAG Triage
+                                Rust Axum Crawler, Firecrawl Fallback &amp; TF-IDF Search
                             </h2>
                             <p className="text-sm text-zinc-600 leading-relaxed font-sans">
-                                Enterprise enrichment requires adversarial DOM extraction that bypasses modern anti-bot protections, alongside automated technical question answering that defends AE calendars:
+                                Flowmeet uses a two-tier scraping pipeline paired with local TF-IDF document retrieval for buyer inquiries:
                             </p>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans">
                                 <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
                                     <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
-                                        <span className="font-mono font-bold text-zinc-900">Firecrawl v1 API Integration</span>
-                                        <span className="font-mono text-[10px] text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">11,000+ Credits Active</span>
+                                        <span className="font-mono font-bold text-zinc-900">In-House Rust Crawler (:8081)</span>
+                                        <span className="font-mono text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">~19MB RAM • ~500ms</span>
                                     </div>
                                     <p className="text-zinc-600">
-                                        Flowmeet connects directly to <code className="font-mono text-zinc-800">POST https://api.firecrawl.dev/v1/scrape</code> to strip JavaScript bloat, bypass bot protections, and return token-dense LLM markdown ready for firmographic extraction.
+                                        Built on Axum and reqwest with SSRF validation, exact regex word boundaries, and streaming HTML to Markdown conversion. Handles 90%+ of standard web homepages with zero headless browser overhead.
                                     </p>
                                 </div>
 
                                 <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
                                     <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
-                                        <span className="font-mono font-bold text-zinc-900">Credit Protection &amp; 24h Cache</span>
-                                        <span className="font-mono text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Zero Waste</span>
+                                        <span className="font-mono font-bold text-zinc-900">Firecrawl v1 API Fallback</span>
+                                        <span className="font-mono text-[10px] text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">Adversarial Fallback</span>
                                     </div>
                                     <p className="text-zinc-600">
-                                        To protect Firecrawl credits and avoid repeat billing, Flowmeet implements an in-memory 24-hour domain cache alongside client IP rate limiting (15 req/hr), ensuring popular showcase domains (Stripe, Linear, Automattic, Cal.com) never consume redundant API units.
+                                        When a domain renders strictly via client-side JavaScript or blocks plain HTTP fetchers, Flowmeet falls back to Firecrawl&apos;s headless browser API. Results are cached in-memory for 24 hours to prevent credit waste.
                                     </p>
                                 </div>
                             </div>

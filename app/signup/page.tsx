@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/app/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 
 export default function SignupPage() {
     const router = useRouter();
@@ -19,13 +20,13 @@ export default function SignupPage() {
         setError(null);
 
         const cleanEmail = email.trim().toLowerCase();
-        const { data, error } = await supabase.auth.signUp({
+        const { data, error: signUpError } = await supabase.auth.signUp({
             email: cleanEmail,
             password,
         });
 
-        if (error) {
-            setError(error.message);
+        if (signUpError) {
+            setError(signUpError.message);
             setLoading(false);
             return;
         }
@@ -49,62 +50,68 @@ export default function SignupPage() {
             });
 
             if (!res.ok) {
-                const errData = await res.json();
-                throw new Error(errData.error || "Onboarding failed");
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || "Onboarding setup failed");
             }
 
             setLoading(false);
             router.refresh();
             window.location.href = "/dashboard";
         } catch (err: any) {
-            setError(err.message);
+            setError(err.message || "An unexpected error occurred during account creation");
             setLoading(false);
         }
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12 sm:px-6 lg:px-8 font-sans relative">
+        <div className="flex min-h-screen items-center justify-center bg-[#fcfcf9] px-4 py-12 sm:px-6 lg:px-8 font-sans relative selection:bg-[#c8f944]">
             <Link
                 href="/"
-                className="absolute top-4 left-4 md:top-8 md:left-8 flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+                className="absolute top-6 left-6 md:top-8 md:left-8 flex items-center gap-2 text-xs font-mono font-medium text-zinc-600 hover:text-zinc-950 transition-colors"
             >
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M19 12H5M12 19l-7-7 7-7" />
-                </svg>
-                Back to home
+                <ArrowLeft className="w-4 h-4" />
+                <span>Back to Flowmeet</span>
             </Link>
-            <div className="w-full max-w-sm space-y-8 bg-white p-8 rounded-xl shadow-lg ring-1 ring-slate-900/5">
-                <div>
-                    <h2 className="mt-2 text-center text-3xl font-bold tracking-tight text-slate-900">
+
+            <div className="w-full max-w-sm space-y-6 bg-white p-8 rounded-3xl border border-zinc-200/90 shadow-sm">
+                <div className="text-center space-y-2">
+                    <div className="w-8 h-8 bg-zinc-950 rounded-lg flex items-center justify-center text-white font-editorial text-lg font-semibold mx-auto mb-2">
+                        F
+                    </div>
+                    <h2 className="font-editorial text-3xl font-normal tracking-tight text-zinc-950">
                         Create an account
                     </h2>
-                    <p className="mt-2 text-center text-sm text-slate-600">
-                        Start managing your leads efficiently
+                    <p className="text-xs text-zinc-500 font-sans">
+                        Start managing inbound routing and instant scheduling
                     </p>
                 </div>
 
-                <form className="mt-8 space-y-6" onSubmit={handleSignup}>
-                    <div className="space-y-4">
+                <form className="mt-6 space-y-4" onSubmit={handleSignup}>
+                    <div className="space-y-3">
                         <div>
-                            <label htmlFor="email" className="sr-only">Email address</label>
+                            <label htmlFor="email" className="block text-xs font-mono font-medium text-zinc-700 mb-1">
+                                Email address
+                            </label>
                             <input
                                 id="email"
                                 type="email"
                                 required
-                                className="relative block w-full rounded-lg border-0 py-2.5 px-3 text-slate-900 ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 transition-all shadow-sm"
-                                placeholder="Email address"
+                                className="block w-full rounded-xl border border-zinc-300 py-2.5 px-3 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-950 text-sm font-sans transition-all"
+                                placeholder="name@company.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                             />
                         </div>
                         <div>
-                            <label htmlFor="password" className="sr-only">Password</label>
+                            <label htmlFor="password" className="block text-xs font-mono font-medium text-zinc-700 mb-1">
+                                Password
+                            </label>
                             <input
                                 id="password"
                                 type="password"
                                 required
-                                className="relative block w-full rounded-lg border-0 py-2.5 px-3 text-slate-900 ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 transition-all shadow-sm"
-                                placeholder="Password"
+                                className="block w-full rounded-xl border border-zinc-300 py-2.5 px-3 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-950 text-sm font-sans transition-all"
+                                placeholder="••••••••••••"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                             />
@@ -112,15 +119,15 @@ export default function SignupPage() {
                     </div>
 
                     {error && (
-                        <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-700 space-y-2">
+                        <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-700 space-y-2">
                             <p className="font-medium">{error}</p>
                             {error.includes("already exists") && (
                                 <Link
                                     href="/login"
-                                    className="inline-flex items-center gap-1.5 text-xs font-bold text-red-900 bg-red-100 hover:bg-red-200 px-3 py-1.5 rounded-md transition-colors"
+                                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-900 bg-red-100 hover:bg-red-200 px-3 py-1.5 rounded-lg transition-colors"
                                 >
                                     <span>Sign in to your account</span>
-                                    <span>&rarr;</span>
+                                    <ArrowRight className="w-3.5 h-3.5" />
                                 </Link>
                             )}
                         </div>
@@ -129,22 +136,24 @@ export default function SignupPage() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="group relative flex w-full justify-center rounded-lg bg-slate-900 px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 transition-all duration-200 transform active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+                        className="group relative flex w-full justify-center items-center gap-2 rounded-xl bg-zinc-950 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-zinc-800 transition-all cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                         {loading ? (
                             <span className="flex items-center gap-2">
-                                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
+                                <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                 Creating account...
                             </span>
-                        ) : "Create account"}
+                        ) : (
+                            <>
+                                <span>Create account</span>
+                                <ArrowRight className="w-3.5 h-3.5 text-[#c8f944]" />
+                            </>
+                        )}
                     </button>
 
-                    <p className="text-center text-sm text-slate-600">
+                    <p className="text-center text-xs text-zinc-500 pt-2">
                         Already have an account?{' '}
-                        <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
+                        <Link href="/login" className="font-semibold text-zinc-900 hover:underline">
                             Sign in
                         </Link>
                     </p>

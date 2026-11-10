@@ -22,7 +22,7 @@ services:
       PORT: 3000
       NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-https://xfvvrqgdklymfubnbiyz.supabase.co}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-sb_publishable_0BNj-1kLBekuFHwY2Pg9zQ_PgAM3GeW}
-      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:-sb_secret_qL_YYlCsagjBjEUnteXb_g_iFTHIotV}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:?SUPABASE_SERVICE_KEY must be set in .env}
       FLOWMEET_INGEST_SECRET: ${FLOWMEET_INGEST_SECRET}
       RUST_CRAWLER_URL: http://flowmeet-crawler:8081
       GOLANG_CONCIERGE_URL: http://flowmeet-concierge:8082

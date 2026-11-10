@@ -27,9 +27,6 @@ export default function Header() {
                         <a href="#how-it-works" className="hover:text-zinc-950 transition-colors">
                             How It Works
                         </a>
-                        <a href="#career-matrix" className="hover:text-zinc-950 transition-colors">
-                            Rule Engine
-                        </a>
                         <a href="#architecture" className="hover:text-zinc-950 transition-colors">
                             Architecture
                         </a>
@@ -84,13 +81,6 @@ export default function Header() {
                         className="block text-sm font-medium text-zinc-800 py-1 hover:text-zinc-950"
                     >
                         How It Works
-                    </a>
-                    <a
-                        href="#career-matrix"
-                        onClick={() => setIsMenuOpen(false)}
-                        className="block text-sm font-medium text-zinc-800 py-1 hover:text-zinc-950"
-                    >
-                        Rule Engine
                     </a>
                     <a
                         href="#architecture"
