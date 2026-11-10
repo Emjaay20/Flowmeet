@@ -338,7 +338,7 @@ export default function AdminClient({
                                                     <span className="text-sm text-slate-600">{lead.region}</span>
                                                 </td>
                                                 <td className="whitespace-nowrap px-6 py-4">
-                                                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${lead.qualified
+                                                    <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${lead.qualified
                                                         ? 'bg-green-50 text-green-700 ring-green-600/20'
                                                         : 'bg-yellow-50 text-yellow-700 ring-yellow-600/20'
                                                         }`}>

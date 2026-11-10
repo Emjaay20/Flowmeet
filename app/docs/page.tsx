@@ -116,9 +116,8 @@ export default function DocsPage() {
                 
                 {/* Header Title */}
                 <div className="max-w-4xl mb-16">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-100 border border-zinc-200 text-zinc-700 text-xs font-mono font-medium mb-4">
-                        <Terminal className="w-3.5 h-3.5 text-zinc-950" />
-                        <span>ARCHITECTURE &amp; CRM INTEGRATION SPECIFICATIONS</span>
+                    <div className="text-xs font-mono font-semibold tracking-wider text-zinc-500 uppercase mb-3">
+                        Architecture &amp; Integration Specifications
                     </div>
                     <h1 className="font-editorial text-4xl sm:text-6xl font-normal text-zinc-950 tracking-tight leading-[1.1] mb-6">
                         Architectural Decisions &amp; <br />
@@ -290,7 +289,7 @@ END:VCALENDAR`}
                                         <strong className="text-zinc-950 block text-sm">Form Concierge Equivalent</strong>
                                         <p className="text-zinc-600">Interception of website form submissions, live domain qualification, and instant calendar presentation without page refresh.</p>
                                     </div>
-                                    <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-mono text-[10px] font-bold whitespace-nowrap">
+                                    <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-mono text-[10px] font-bold whitespace-nowrap">
                                         Flowmeet Rust Scraper + SSE Stream
                                     </span>
                                 </div>
@@ -300,7 +299,7 @@ END:VCALENDAR`}
                                         <strong className="text-zinc-950 block text-sm">Distro Routing Equivalent</strong>
                                         <p className="text-zinc-600">Lead qualification, territory scoring, and deterministic rep assignment in microseconds based on rules and region.</p>
                                     </div>
-                                    <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-mono text-[10px] font-bold whitespace-nowrap">
+                                    <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-mono text-[10px] font-bold whitespace-nowrap">
                                         Flowmeet Go Concierge (:8082)
                                     </span>
                                 </div>
@@ -310,7 +309,7 @@ END:VCALENDAR`}
                                         <strong className="text-zinc-950 block text-sm">Instant Booker / Handoff Equivalent</strong>
                                         <p className="text-zinc-600">Cal.com API integration, in-session slot picker, and RFC 5545 calendar invitation dispatch via Resend.</p>
                                     </div>
-                                    <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-mono text-[10px] font-bold whitespace-nowrap">
+                                    <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-mono text-[10px] font-bold whitespace-nowrap">
                                         Flowmeet /api/book-slot + Resend
                                     </span>
                                 </div>
@@ -409,7 +408,7 @@ END:VCALENDAR`}
                                 <a
                                     href="/workflows/polyglot-revenue-orchestrator.json"
                                     download="polyglot-revenue-orchestrator.json"
-                                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-950 text-[#c8f944] font-mono text-[11px] font-bold hover:bg-zinc-800 transition-all"
+                                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-zinc-950 text-[#c8f944] font-mono text-[11px] font-bold hover:bg-zinc-800 transition-all"
                                 >
                                     <span>Download 12-Node Workflow (.json)</span>
                                     <ExternalLink className="w-3 h-3" />
@@ -466,7 +465,7 @@ END:VCALENDAR`}
                         </section>
 
                         {/* Interactive Live n8n Polyglot Orchestrator Simulator */}
-                        <section id="n8n-tester" className="bg-zinc-950 text-white rounded-3xl border border-zinc-800 shadow-xl p-6 sm:p-10 space-y-6">
+                        <section id="n8n-tester" className="bg-zinc-950 text-white rounded-2xl border border-zinc-800 shadow-xl p-6 sm:p-10 space-y-6">
                             <div className="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-zinc-800">
                                 <div className="flex items-center gap-2">
                                     <Layers className="w-5 h-5 text-[#c8f944]" />
@@ -474,7 +473,7 @@ END:VCALENDAR`}
                                         LIVE 12-NODE n8n POLYGLOT ORCHESTRATOR &amp; CIRCUIT BREAKER TESTER
                                     </h3>
                                 </div>
-                                <span className="px-2.5 py-0.5 rounded-full bg-zinc-800 text-[10px] font-mono text-[#c8f944] border border-zinc-700">
+                                <span className="px-2 py-0.5 rounded-md bg-zinc-800 text-[10px] font-mono text-[#c8f944] border border-zinc-700">
                                     POST /api/n8n-orchestrate
                                 </span>
                             </div>
@@ -534,7 +533,7 @@ END:VCALENDAR`}
                                     type="button"
                                     onClick={handleTestN8nOrchestrator}
                                     disabled={n8nLoading}
-                                    className="w-full sm:w-auto px-6 py-3 rounded-full bg-[#c8f944] hover:bg-[#b5e635] text-zinc-950 font-bold text-xs font-mono flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                                    className="w-full sm:w-auto px-5 py-2.5 rounded-lg bg-[#c8f944] hover:bg-[#b5e635] text-zinc-950 font-bold text-xs font-mono flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
                                 >
                                     {n8nLoading ? (
                                         <>
@@ -557,7 +556,7 @@ END:VCALENDAR`}
                                             "n8n-curl"
                                         )
                                     }
-                                    className="px-4 py-3 rounded-full bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-700 text-xs font-mono flex items-center gap-2 transition-all cursor-pointer"
+                                    className="px-4 py-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-700 text-xs font-mono flex items-center gap-2 transition-all cursor-pointer"
                                 >
                                     {copiedIndex === "n8n-curl" ? (
                                         <>
@@ -576,7 +575,7 @@ END:VCALENDAR`}
                             {n8nResult && (
                                 <div className="mt-4 space-y-4">
                                     {/* Node Execution Trace */}
-                                    <div className="rounded-2xl bg-zinc-900 p-4 border border-zinc-800 font-mono text-xs space-y-2.5">
+                                    <div className="rounded-xl bg-zinc-900 p-4 border border-zinc-800 font-mono text-xs space-y-2.5">
                                         <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-zinc-800 text-[10px] text-zinc-400">
                                             <span className="text-[#c8f944] font-bold">
                                                 ✓ WORKFLOW TRACE • TOTAL PIPELINE: {n8nResult.total_orchestration_ms}ms
@@ -586,9 +585,9 @@ END:VCALENDAR`}
                                             </span>
                                         </div>
                                         {n8nResult.node_execution_trace?.map((node: any) => (
-                                            <div key={node.node_id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 py-1.5 border-b border-zinc-800/60 last:border-0">
+                                             <div key={node.node_id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 py-1.5 border-b border-zinc-800/60 last:border-0">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                                                    <span className="w-2 h-2 rounded-sm bg-emerald-400 shrink-0" />
                                                     <span className="text-white font-semibold">{node.name}</span>
                                                 </div>
                                                 <span className="text-[11px] text-zinc-400">{node.output_summary}</span>
@@ -597,7 +596,7 @@ END:VCALENDAR`}
                                     </div>
 
                                     {/* Synthesized Draft Output */}
-                                    <div className="rounded-2xl bg-zinc-900 p-4 border border-zinc-800 font-mono text-xs">
+                                    <div className="rounded-xl bg-zinc-900 p-4 border border-zinc-800 font-mono text-xs">
                                         <div className="flex items-center justify-between pb-2 mb-2 border-b border-zinc-800 text-[10px] text-zinc-400">
                                             <span className="text-emerald-400">GROUNDED AI SYNTHESIS (RUST + GO + PYTHON RAG)</span>
                                             <span>ICP SCORE: {n8nResult.payload?.scoring_and_routing?.final_icp_score}/100</span>
@@ -611,7 +610,7 @@ END:VCALENDAR`}
                         </section>
 
                         {/* Interactive Live Salesforce REST API Tester */}
-                        <section id="live-tester" className="bg-zinc-950 text-white rounded-3xl border border-zinc-800 shadow-xl p-6 sm:p-10 space-y-6">
+                        <section id="live-tester" className="bg-zinc-950 text-white rounded-2xl border border-zinc-800 shadow-xl p-6 sm:p-10 space-y-6">
                             <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
                                 <div className="flex items-center gap-2">
                                     <Building2 className="w-5 h-5 text-[#c8f944]" />
@@ -619,7 +618,7 @@ END:VCALENDAR`}
                                         LIVE SALESFORCE REST API TESTER
                                     </h3>
                                 </div>
-                                <span className="px-2.5 py-0.5 rounded-full bg-zinc-800 text-[10px] font-mono text-[#c8f944] border border-zinc-700">
+                                <span className="px-2 py-0.5 rounded-md bg-zinc-800 text-[10px] font-mono text-[#c8f944] border border-zinc-700">
                                     POST /api/salesforce/sync
                                 </span>
                             </div>
@@ -639,7 +638,7 @@ END:VCALENDAR`}
                                             setSelectedCompany(comp);
                                             setSfResult(null);
                                         }}
-                                        className={`px-3 py-1.5 rounded-xl text-xs font-mono border transition-all cursor-pointer ${
+                                        className={`px-3 py-1.5 rounded-md text-xs font-mono border transition-all cursor-pointer ${
                                             selectedCompany === comp
                                                 ? "bg-[#c8f944] text-zinc-950 font-bold border-[#c8f944]"
                                                 : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
@@ -655,7 +654,7 @@ END:VCALENDAR`}
                                 type="button"
                                 onClick={handleTestSalesforce}
                                 disabled={sfLoading}
-                                className="w-full sm:w-auto px-6 py-3 rounded-full bg-white hover:bg-zinc-200 text-zinc-950 font-bold text-xs font-mono flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                                className="w-full sm:w-auto px-5 py-2.5 rounded-lg bg-white hover:bg-zinc-200 text-zinc-950 font-bold text-xs font-mono flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
                             >
                                 {sfLoading ? (
                                     <>

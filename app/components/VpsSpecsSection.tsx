@@ -84,9 +84,8 @@ export default function VpsSpecsSection() {
                 
                 {/* Header */}
                 <div className="max-w-3xl mb-16">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-100 border border-zinc-200 text-zinc-700 text-xs font-mono font-medium mb-4">
-                        <span className="w-1.5 h-1.5 rounded-full bg-zinc-950"></span>
-                        <span>MEASURED RESOURCE FOOTPRINT</span>
+                    <div className="text-xs font-mono font-semibold tracking-wider text-zinc-500 uppercase mb-3">
+                        02 • Measured Resource Footprint
                     </div>
                     <h2 className="font-editorial text-4xl sm:text-6xl font-normal text-zinc-950 tracking-tight leading-[1.1]">
                         Runs on a 1GB VPS. <br className="hidden sm:inline" />
@@ -101,7 +100,7 @@ export default function VpsSpecsSection() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                     
                     {/* Left: Memory Visualizer Bar & Service Breakdown */}
-                    <div className="lg:col-span-7 bg-white rounded-3xl border border-zinc-200/90 shadow-sm p-6 sm:p-8 space-y-6">
+                    <div className="lg:col-span-7 bg-white rounded-2xl border border-zinc-200/90 shadow-sm p-6 sm:p-8 space-y-6">
                         <div className="flex items-center justify-between pb-4 border-b border-zinc-100">
                             <div>
                                 <h3 className="text-sm font-mono font-bold text-zinc-950 uppercase tracking-wider">
@@ -111,7 +110,7 @@ export default function VpsSpecsSection() {
                                     Measured idle resident set size (RSS) per container
                                 </p>
                             </div>
-                            <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
                                 {totalActiveMb} MB / {totalVpsMb} MB (12.1%)
                             </span>
                         </div>
@@ -149,14 +148,14 @@ export default function VpsSpecsSection() {
                                 >
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-2">
-                                            <span className={`w-2.5 h-2.5 rounded-full ${s.color}`}></span>
+                                            <span className={`w-2 h-2 rounded-sm ${s.color}`}></span>
                                             <span className="font-bold text-zinc-900">{s.name}</span>
                                             <span className="font-mono text-[10px] text-zinc-500 bg-white px-1.5 py-0.5 rounded border border-zinc-200">
                                                 {s.port}
                                             </span>
                                             <span className="text-[11px] text-zinc-400 font-mono">({s.runtime})</span>
                                         </div>
-                                        <p className="text-zinc-500 text-[11px] pl-4.5">
+                                        <p className="text-zinc-500 text-[11px] pl-4">
                                             {s.description}
                                         </p>
                                     </div>
@@ -170,7 +169,7 @@ export default function VpsSpecsSection() {
                     </div>
 
                     {/* Right: Live VPS Status & Hardware Telemetry */}
-                    <div className="lg:col-span-5 bg-white rounded-3xl border border-zinc-200/90 shadow-sm p-6 sm:p-8 space-y-6">
+                    <div className="lg:col-span-5 bg-white rounded-2xl border border-zinc-200/90 shadow-sm p-6 sm:p-8 space-y-6">
                         <div className="flex items-center justify-between pb-4 border-b border-zinc-100">
                             <div>
                                 <h3 className="text-sm font-mono font-bold text-zinc-950 uppercase tracking-wider">
@@ -180,7 +179,7 @@ export default function VpsSpecsSection() {
                                     Production deployment specs
                                 </p>
                             </div>
-                            <span className="inline-flex items-center gap-1.5 text-[11px] font-mono text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 font-semibold">
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-mono text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 font-semibold">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> ONLINE
                             </span>
                         </div>

@@ -53,7 +53,7 @@ export default function Header() {
                     </Link>
                     <a
                         href="#interactive-demo"
-                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold bg-zinc-950 text-white hover:bg-zinc-800 shadow-xs transition-all cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-zinc-950 text-white hover:bg-zinc-800 shadow-xs transition-all cursor-pointer"
                     >
                         <span>Try Live Demo</span>
                         <ArrowRight className="w-3.5 h-3.5 text-[#c8f944]" />
@@ -120,7 +120,7 @@ export default function Header() {
                         <a
                             href="#interactive-demo"
                             onClick={() => setIsMenuOpen(false)}
-                            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold bg-zinc-950 text-white"
+                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-zinc-950 text-white"
                         >
                             <span>Try Live Demo</span>
                             <ArrowRight className="w-3.5 h-3.5 text-[#c8f944]" />

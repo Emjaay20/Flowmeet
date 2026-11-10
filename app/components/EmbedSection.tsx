@@ -30,9 +30,8 @@ export default function EmbedSection() {
                 
                 {/* Header */}
                 <div className="max-w-3xl mb-16">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-100 border border-zinc-200 text-zinc-700 text-xs font-mono font-medium mb-4">
-                        <span className="w-1.5 h-1.5 rounded-full bg-zinc-950"></span>
-                        <span>ONE-LINE JAVASCRIPT EMBED</span>
+                    <div className="text-xs font-mono font-semibold tracking-wider text-zinc-500 uppercase mb-3">
+                        04 • One-Line JavaScript Embed
                     </div>
                     <h2 className="font-editorial text-4xl sm:text-6xl font-normal text-zinc-950 tracking-tight leading-[1.1]">
                         Drop Flowmeet on your site. <br className="hidden sm:inline" />
@@ -47,13 +46,13 @@ export default function EmbedSection() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
                     
                     {/* Left: Embed Configurator & Script Box */}
-                    <div className="lg:col-span-6 bg-white rounded-3xl border border-zinc-200/90 shadow-sm p-6 sm:p-8 space-y-6">
+                    <div className="lg:col-span-6 bg-white rounded-2xl border border-zinc-200/90 shadow-sm p-6 sm:p-8 space-y-6">
                         <div className="flex items-center justify-between pb-4 border-b border-zinc-100">
                             <span className="text-xs font-mono font-bold text-zinc-900 uppercase tracking-wider">
                                 CONFIGURE EMBED SNIPPET
                             </span>
-                            <span className="text-[11px] font-mono text-emerald-700 font-semibold flex items-center gap-1">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> CDN Ready
+                            <span className="text-[11px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 font-medium">
+                                CDN Ready
                             </span>
                         </div>
 
@@ -126,7 +125,7 @@ export default function EmbedSection() {
                     </div>
 
                     {/* Right: Live Interactive End-User Preview Card */}
-                    <div className="lg:col-span-6 bg-white rounded-3xl border border-zinc-200/90 shadow-xl p-6 sm:p-8">
+                    <div className="lg:col-span-6 bg-white rounded-2xl border border-zinc-200/90 shadow-xl p-6 sm:p-8">
                         
                         <div className="flex items-center justify-between pb-4 border-b border-zinc-100 mb-6">
                             <span className="text-xs font-mono font-bold text-zinc-500 uppercase tracking-wider">

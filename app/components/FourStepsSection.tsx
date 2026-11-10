@@ -110,9 +110,8 @@ export default function FourStepsSection() {
                 
                 {/* Header */}
                 <div className="max-w-3xl mb-16">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-100 border border-zinc-200 text-zinc-700 text-xs font-mono font-medium mb-4">
-                        <span className="w-1.5 h-1.5 rounded-full bg-zinc-950"></span>
-                        <span>PIPELINE ARCHITECTURE</span>
+                    <div className="text-xs font-mono font-semibold tracking-wider text-zinc-500 uppercase mb-3">
+                        01 • Pipeline Architecture
                     </div>
                     <h2 className="font-editorial text-4xl sm:text-6xl font-normal text-zinc-950 tracking-tight leading-[1.1]">
                         Four purpose-built steps. <br className="hidden sm:inline" />
@@ -128,7 +127,7 @@ export default function FourStepsSection() {
                     {STEPS.map((step, idx) => (
                         <div 
                             key={step.number}
-                            className="bg-white rounded-3xl border border-zinc-200/90 shadow-sm p-6 flex flex-col justify-between hover:border-zinc-400 transition-all group"
+                            className="bg-white rounded-2xl border border-zinc-200/90 shadow-sm p-6 flex flex-col justify-between hover:border-zinc-400 transition-all group"
                         >
                             <div>
                                 {/* Step Top Row: Number & Measured Latency */}
@@ -136,7 +135,7 @@ export default function FourStepsSection() {
                                     <span className="font-editorial text-2xl font-normal text-zinc-400 group-hover:text-zinc-950 transition-colors">
                                         {step.number}
                                     </span>
-                                    <span className="font-mono text-[11px] px-2.5 py-1 rounded-full font-semibold bg-zinc-100 text-zinc-700 border border-zinc-200">
+                                    <span className="font-mono text-[11px] px-2 py-0.5 rounded-md font-medium bg-zinc-100 text-zinc-700 border border-zinc-200">
                                         {step.latency}
                                     </span>
                                 </div>

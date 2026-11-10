@@ -28,9 +28,8 @@ docker compose up -d --build`;
                 
                 {/* Header */}
                 <div className="text-center max-w-3xl mx-auto mb-16">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-100 border border-zinc-200 text-zinc-700 text-xs font-mono font-medium mb-4">
-                        <span className="w-1.5 h-1.5 rounded-full bg-zinc-950"></span>
-                        <span>SELF-HOSTED &amp; OPEN ARCHITECTURE</span>
+                    <div className="text-xs font-mono font-semibold tracking-wider text-zinc-500 uppercase mb-3">
+                        03 • Self-Hosted &amp; Open Architecture
                     </div>
                     <h2 className="font-editorial text-4xl sm:text-6xl font-normal text-zinc-950 tracking-tight leading-[1.1]">
                         Deploy Flowmeet on your own server. <br className="hidden sm:inline" />
@@ -45,14 +44,12 @@ docker compose up -d --build`;
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch max-w-6xl mx-auto">
                     
                     {/* Left: Quickstart Terminal */}
-                    <div className="lg:col-span-7 bg-[#0d0e10] rounded-3xl border border-zinc-800 p-6 sm:p-8 flex flex-col justify-between shadow-xl text-white">
+                    <div className="lg:col-span-7 bg-[#0d0e10] rounded-2xl border border-zinc-800 p-6 sm:p-8 flex flex-col justify-between shadow-xl text-white">
                         <div>
                             <div className="flex items-center justify-between pb-4 border-b border-zinc-800 mb-5">
                                 <div className="flex items-center gap-2">
-                                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80"></span>
-                                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80"></span>
-                                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></span>
-                                    <span className="text-[11px] font-mono text-zinc-400 ml-2">quickstart.sh</span>
+                                    <Terminal className="w-3.5 h-3.5 text-zinc-500" />
+                                    <span className="text-[11px] font-mono text-zinc-400">quickstart.sh</span>
                                 </div>
                                 <button
                                     onClick={handleCopy}
@@ -101,14 +98,14 @@ docker compose up -d --build`;
                                 href="https://github.com/Emjaay20/Flowmeet"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="w-full sm:w-auto px-5 py-2.5 rounded-full bg-[#c8f944] hover:bg-[#bbf32d] text-zinc-950 font-bold text-xs tracking-tight transition-all flex items-center justify-center gap-2"
+                                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#c8f944] hover:bg-[#bbf32d] text-zinc-950 font-bold text-xs tracking-tight transition-all flex items-center justify-center gap-2"
                             >
                                 <GitBranch className="w-3.5 h-3.5" />
                                 <span>Star on GitHub</span>
                             </a>
                             <a
                                 href="/docs"
-                                className="w-full sm:w-auto px-5 py-2.5 rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium text-xs tracking-tight transition-all flex items-center justify-center gap-2"
+                                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium text-xs tracking-tight transition-all flex items-center justify-center gap-2"
                             >
                                 <span>Read Engineering Docs</span>
                                 <ArrowRight className="w-3.5 h-3.5" />
@@ -117,13 +114,13 @@ docker compose up -d --build`;
                     </div>
 
                     {/* Right: Transparent VPS Cost Breakdown */}
-                    <div className="lg:col-span-5 bg-white rounded-3xl border border-zinc-200/90 shadow-sm p-6 sm:p-8 flex flex-col justify-between">
+                    <div className="lg:col-span-5 bg-white rounded-2xl border border-zinc-200/90 shadow-sm p-6 sm:p-8 flex flex-col justify-between">
                         <div>
                             <div className="flex items-center justify-between pb-4 border-b border-zinc-100 mb-6">
                                 <span className="text-xs font-mono font-bold text-zinc-500 uppercase tracking-wider">
                                     ESTIMATED MONTHLY COST
                                 </span>
-                                <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-[10px] font-mono text-emerald-700 font-semibold border border-emerald-200">
+                                <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-[10px] font-mono text-emerald-700 font-semibold border border-emerald-200">
                                     Self-Hosted
                                 </span>
                             </div>
