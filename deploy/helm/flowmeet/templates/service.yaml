@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "flowmeet.fullname" . }}-crawler
+  labels:
+    {{- include "flowmeet.labels" . | nindent 4 }}
+    app.kubernetes.io/component: crawler
+spec:
+  type: {{ .Values.crawler.service.type }}
+  ports:
+    - port: {{ .Values.crawler.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "flowmeet.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: crawler

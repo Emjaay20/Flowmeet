@@ -1,0 +1,33 @@
+{{- if .Values.crawler.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "flowmeet.fullname" . }}-crawler
+  labels:
+    {{- include "flowmeet.labels" . | nindent 4 }}
+    app.kubernetes.io/component: crawler
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "flowmeet.fullname" . }}-crawler
+  minReplicas: {{ .Values.crawler.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.crawler.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.crawler.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.crawler.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.crawler.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.crawler.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}

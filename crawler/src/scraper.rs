@@ -76,7 +76,11 @@ async fn ensure_public(target_url: &str) -> Result<(), String> {
             return Err(format!("{host} resolves to a non-public address"));
         }
     }
-    if any { Ok(()) } else { Err(format!("{host} did not resolve")) }
+    if any {
+        Ok(())
+    } else {
+        Err(format!("{host} did not resolve"))
+    }
 }
 
 /// Fetches a page over plain HTTP and converts it to Markdown. There is no
@@ -93,7 +97,11 @@ pub async fn perform_scrape(req: ScrapeRequest) -> Result<ScrapeResponse, String
     ensure_public(&target_url).await?;
 
     let redirects = reqwest::redirect::Policy::custom(|attempt| {
-        let ok = attempt.url().host_str().map(is_plain_public_name).unwrap_or(false);
+        let ok = attempt
+            .url()
+            .host_str()
+            .map(is_plain_public_name)
+            .unwrap_or(false);
         if attempt.previous().len() >= 3 || !ok {
             attempt.stop()
         } else {

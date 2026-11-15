@@ -1,19 +1,24 @@
-# Stage 1: Build static optimized binary
-FROM rust:1-slim-bookworm AS builder
-
+# Stage 1: Base cargo-chef environment with Rust toolchain
+FROM lukemathwalker/cargo-chef:latest-rust-1-bookworm AS chef
 WORKDIR /usr/src/app
-
-# Install compilation prerequisites
 RUN apt-get update && apt-get install -y pkg-config libssl-dev git && rm -rf /var/lib/apt/lists/*
 
-# Copy manifest and source code
-COPY Cargo.toml ./
-COPY src ./src
+# Stage 2: Planner - analyzes dependency lockfiles and generates caching recipe
+FROM chef AS planner
+COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
 
-# Compile release build (stripped & optimized for minimal RAM footprint)
-RUN cargo build --release
+# Stage 3: Builder - cooks dependencies separately for Docker layer caching
+FROM chef AS builder
+COPY --from=planner /usr/src/app/recipe.json recipe.json
+# Build and cache dependencies layer. Rebuilds only when Cargo dependencies change.
+RUN cargo chef cook --release --recipe-path recipe.json
 
-# Stage 2: Minimal runtime production image
+# Copy full source and compile release binary
+COPY . .
+RUN cargo build --release --bin flowmeet-crawler
+
+# Stage 4: Minimal, unprivileged runtime production image
 FROM debian:bookworm-slim AS runtime
 
 # Install CA certificates for secure HTTPS scraping via reqwest
@@ -31,7 +36,7 @@ COPY --from=builder --chown=flowcrawler:flowcrawler /usr/src/app/target/release/
 EXPOSE 8081
 
 # Environmental variables for tuning Tokio threads & log verbosity
-ENV RUST_LOG="flowmeet_crawler=info,axum=info"
+ENV RUST_LOG="flowmeet_crawler=info,flowmeet_permissions=info,axum=info"
 ENV TOKIO_WORKER_THREADS=2
 
 # Liveness check probe for Docker / Kubernetes

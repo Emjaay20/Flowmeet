@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "flowmeet.fullname" . }}-crawler
+  labels:
+    {{- include "flowmeet.labels" . | nindent 4 }}
+    app.kubernetes.io/component: crawler
+spec:
+  {{- if not .Values.crawler.autoscaling.enabled }}
+  replicas: {{ .Values.crawler.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "flowmeet.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: crawler
+  template:
+    metadata:
+      labels:
+        {{- include "flowmeet.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: crawler
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8081"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: {{ .Values.crawler.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.crawler.securityContext.runAsGroup }}
+      containers:
+        - name: crawler
+          image: "{{ .Values.crawler.image.repository }}:{{ .Values.crawler.image.tag }}"
+          imagePullPolicy: {{ .Values.crawler.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: {{ .Values.crawler.securityContext.allowPrivilegeEscalation }}
+            readOnlyRootFilesystem: {{ .Values.crawler.securityContext.readOnlyRootFilesystem }}
+            capabilities:
+              drop:
+                {{- toYaml .Values.crawler.securityContext.capabilities.drop | nindent 16 }}
+          ports:
+            - name: http
+              containerPort: 8081
+              protocol: TCP
+          env:
+            - name: RUST_LOG
+              value: {{ .Values.crawler.env.RUST_LOG | quote }}
+            - name: TOKIO_WORKER_THREADS
+              value: {{ .Values.crawler.env.TOKIO_WORKER_THREADS | quote }}
+          livenessProbe:
+            {{- toYaml .Values.crawler.probes.liveness | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.crawler.probes.readiness | nindent 12 }}
+          resources:
+            {{- toYaml .Values.crawler.resources | nindent 12 }}

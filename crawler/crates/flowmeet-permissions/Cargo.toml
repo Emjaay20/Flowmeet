@@ -1,0 +1,29 @@
+[package]
+name = "flowmeet-permissions"
+version = "0.1.0"
+edition = "2021"
+description = "High-performance, type-safe RBAC and ABAC authorization engine for FlowMeet platform services"
+authors = ["Yusuf Abubakar Saka <yusuf@yusufsaka.dev>", "FlowMeet Platform Team"]
+license = "MIT"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+bitflags = { version = "2.4", features = ["serde"] }
+axum = { version = "0.7", optional = true }
+http = { version = "1.0", optional = true }
+tracing = "0.1"
+
+[features]
+default = ["axum-integration"]
+axum-integration = ["dep:axum", "dep:http"]
+
+[dev-dependencies]
+criterion = "0.5"
+tokio = { version = "1.36", features = ["full"] }
+tower = { version = "0.4" }
+
+[[bench]]
+name = "policy_bench"
+harness = false

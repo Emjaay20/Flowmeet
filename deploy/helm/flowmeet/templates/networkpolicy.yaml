@@ -1,0 +1,45 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "flowmeet.fullname" . }}-crawler
+  labels:
+    {{- include "flowmeet.labels" . | nindent 4 }}
+    app.kubernetes.io/component: crawler
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "flowmeet.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: crawler
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow inbound API and Prometheus traffic on 8081
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8081
+  egress:
+    # Allow CoreDNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow public HTTPS scraping while blocking Cloud Metadata (169.254.169.254)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 169.254.169.254/32
+              - 127.0.0.0/8
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80
+{{- end }}

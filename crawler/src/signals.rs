@@ -31,19 +31,36 @@ const TECH_PATTERNS: &[(&str, &str)] = &[
 ];
 
 const INDICATOR_PATTERNS: &[(&str, &str)] = &[
-    ("Mentions SOC 2 / ISO 27001 / GDPR", r"soc ?2|iso 27001|\bgdpr\b"),
+    (
+        "Mentions SOC 2 / ISO 27001 / GDPR",
+        r"soc ?2|iso 27001|\bgdpr\b",
+    ),
     ("Mentions SSO / SAML", r"\bsso\b|\bsaml\b|\bokta\b|azure ad"),
-    ("Mentions SLA or dedicated support", r"\bsla\b|99\.9+% uptime|24/7 support|dedicated account manager"),
-    ("Mentions contact-sales pricing", r"contact sales|custom pricing|enterprise plan"),
+    (
+        "Mentions SLA or dedicated support",
+        r"\bsla\b|99\.9+% uptime|24/7 support|dedicated account manager",
+    ),
+    (
+        "Mentions contact-sales pricing",
+        r"contact sales|custom pricing|enterprise plan",
+    ),
 ];
 
 pub fn analyze_signals(_url: &str, html_content: &str, markdown_text: &str) -> FirmographicSignals {
-    let haystack = format!("{} {}", html_content.to_lowercase(), markdown_text.to_lowercase());
+    let haystack = format!(
+        "{} {}",
+        html_content.to_lowercase(),
+        markdown_text.to_lowercase()
+    );
 
     let matches = |table: &[(&str, &str)]| -> Vec<String> {
         table
             .iter()
-            .filter(|(_, pattern)| Regex::new(pattern).map(|re| re.is_match(&haystack)).unwrap_or(false))
+            .filter(|(_, pattern)| {
+                Regex::new(pattern)
+                    .map(|re| re.is_match(&haystack))
+                    .unwrap_or(false)
+            })
             .map(|(name, _)| name.to_string())
             .collect()
     };
@@ -81,14 +98,26 @@ mod tests {
     fn keywords_match_whole_words_only() {
         // "trust" contains "rust", "storage" contains "rag", "translate" contains "sla".
         let s = analyze_signals("", "", "we build trust, storage and translate things");
-        assert!(s.detected_tech_stack.is_empty(), "{:?}", s.detected_tech_stack);
-        assert!(s.enterprise_indicators.is_empty(), "{:?}", s.enterprise_indicators);
+        assert!(
+            s.detected_tech_stack.is_empty(),
+            "{:?}",
+            s.detected_tech_stack
+        );
+        assert!(
+            s.enterprise_indicators.is_empty(),
+            "{:?}",
+            s.enterprise_indicators
+        );
         assert_eq!(s.estimated_size_tier, "Unknown");
     }
 
     #[test]
     fn real_mentions_are_detected() {
-        let s = analyze_signals("", "<script src=\"/_next/x.js\">", "Built with Docker and Stripe. SOC 2 report and SAML SSO available.");
+        let s = analyze_signals(
+            "",
+            "<script src=\"/_next/x.js\">",
+            "Built with Docker and Stripe. SOC 2 report and SAML SSO available.",
+        );
         assert!(s.detected_tech_stack.contains(&"Next.js".to_string()));
         assert!(s.detected_tech_stack.contains(&"Docker".to_string()));
         assert!(s.detected_tech_stack.contains(&"Stripe".to_string()));

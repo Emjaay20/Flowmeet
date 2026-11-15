@@ -1,0 +1,34 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: flowmeet-production
+  namespace: default
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: ./deploy/helm/flowmeet
+      sourceRef:
+        kind: GitRepository
+        name: flowmeet-source
+        namespace: flux-system
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    global:
+      environment: production
+    crawler:
+      replicaCount: 3
+      resources:
+        limits:
+          memory: 45Mi
+        requests:
+          memory: 20Mi
+      autoscaling:
+        enabled: true
+        minReplicas: 3
+        maxReplicas: 12

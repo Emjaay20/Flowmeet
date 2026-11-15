@@ -1,0 +1,19 @@
+{{- if .Values.crawler.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "flowmeet.fullname" . }}-crawler
+  labels:
+    {{- include "flowmeet.labels" . | nindent 4 }}
+    app.kubernetes.io/component: crawler
+spec:
+  selector:
+    matchLabels:
+      {{- include "flowmeet.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: crawler
+  endpoints:
+    - port: http
+      path: {{ .Values.crawler.serviceMonitor.path }}
+      interval: {{ .Values.crawler.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.crawler.serviceMonitor.scrapeTimeout }}
+{{- end }}

@@ -1,0 +1,73 @@
+# Default values for FlowMeet Kubernetes deployment.
+
+global:
+  environment: production
+  clusterDomain: cluster.local
+
+crawler:
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: ghcr.io/emjaay20/flowmeet-crawler
+    pullPolicy: IfNotPresent
+    tag: "latest"
+
+  service:
+    type: ClusterIP
+    port: 8081
+    metricsPort: 8081
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 45Mi
+    requests:
+      cpu: 50m
+      memory: 20Mi
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1001
+    runAsGroup: 1001
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+  probes:
+    liveness:
+      httpGet:
+        path: /health
+        port: 8081
+      initialDelaySeconds: 5
+      periodSeconds: 15
+      timeoutSeconds: 3
+    readiness:
+      httpGet:
+        path: /health
+        port: 8081
+      initialDelaySeconds: 3
+      periodSeconds: 10
+
+  env:
+    RUST_LOG: "flowmeet_crawler=info,flowmeet_permissions=info,axum=info"
+    TOKIO_WORKER_THREADS: "2"
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 75
+    targetMemoryUtilizationPercentage: 80
+
+  serviceMonitor:
+    enabled: true
+    interval: 15s
+    scrapeTimeout: 10s
+    path: /metrics
+
+networkPolicy:
+  enabled: true
+  blockCloudMetadata: true

@@ -1,0 +1,13 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: flowmeet-source
+  namespace: flux-system
+spec:
+  interval: 1m
+  url: https://github.com/Emjaay20/Flowmeet
+  ref:
+    branch: main
+  ignore: |
+    /*
+    !/deploy/helm/flowmeet
