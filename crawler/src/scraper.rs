@@ -148,35 +148,53 @@ pub async fn perform_scrape(req: ScrapeRequest) -> Result<ScrapeResponse, String
         .map_err(|_| "Page read exceeded 10 seconds")??;
     let status_code = 200;
     let bytes_fetched = html_content.len();
+    let max_tokens = req.max_tokens;
+    let url_for_signals = target_url.clone();
 
-    let document = Html::parse_document(&html_content);
+    // Offload CPU-bound DOM parsing, HTML-to-Markdown conversion, and regex
+    // signal matching so Tokio async worker threads remain responsive.
+    let (page_title, meta_description, llm_markdown, firmographic_signals) =
+        tokio::task::spawn_blocking(move || {
+            let document = Html::parse_document(&html_content);
 
-    let title_selector = Selector::parse("title").unwrap();
-    let page_title = document
-        .select(&title_selector)
-        .next()
-        .map(|el| el.text().collect::<Vec<_>>().join(" ").trim().to_string())
-        .unwrap_or_default();
+            let title_selector = Selector::parse("title").unwrap();
+            let page_title = document
+                .select(&title_selector)
+                .next()
+                .map(|el| el.text().collect::<Vec<_>>().join(" ").trim().to_string())
+                .unwrap_or_default();
 
-    let meta_selector =
-        Selector::parse("meta[name='description'], meta[property='og:description']").unwrap();
-    let meta_description = document
-        .select(&meta_selector)
-        .next()
-        .and_then(|el| el.value().attr("content"))
-        .map(|s| s.to_string())
-        .unwrap_or_default();
+            let meta_selector =
+                Selector::parse("meta[name='description'], meta[property='og:description']")
+                    .unwrap();
+            let meta_description = document
+                .select(&meta_selector)
+                .next()
+                .and_then(|el| el.value().attr("content"))
+                .map(|s| s.to_string())
+                .unwrap_or_default();
 
-    let mut llm_markdown = html2md::parse_html(&html_content);
+            let mut llm_markdown = html2md::parse_html(&html_content);
 
-    // max_tokens is approximate: four characters per token.
-    let max_chars = req.max_tokens.unwrap_or(4096).clamp(1, 8192) * 4;
-    if llm_markdown.chars().count() > max_chars {
-        llm_markdown = llm_markdown.chars().take(max_chars).collect::<String>();
-        llm_markdown.push_str("\n[truncated]");
-    }
+            // max_tokens is approximate: four characters per token.
+            let max_chars = max_tokens.unwrap_or(4096).clamp(1, 8192) * 4;
+            if llm_markdown.chars().count() > max_chars {
+                llm_markdown = llm_markdown.chars().take(max_chars).collect::<String>();
+                llm_markdown.push_str("\n[truncated]");
+            }
 
-    let firmographic_signals = analyze_signals(&target_url, &html_content, &llm_markdown);
+            let firmographic_signals =
+                analyze_signals(&url_for_signals, &html_content, &llm_markdown);
+
+            (
+                page_title,
+                meta_description,
+                llm_markdown,
+                firmographic_signals,
+            )
+        })
+        .await
+        .map_err(|e| format!("HTML parse worker failed: {e}"))?;
 
     Ok(ScrapeResponse {
         status: status_code,

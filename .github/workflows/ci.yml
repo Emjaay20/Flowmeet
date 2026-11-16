@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -190,5 +193,7 @@ jobs:
           python-version: '3.12'
       - run: pip install -r ai-brain/requirements.txt
       - run: python -m unittest discover -s ai-brain -p 'test_*.py'
-      - name: Check downloadable workflow matches source
-        run: cmp n8n/polyglot-revenue-orchestrator.json public/workflows/polyglot-revenue-orchestrator.json
+      - name: Check downloadable workflows match source
+        run: |
+          cmp n8n/polyglot-revenue-orchestrator.json public/workflows/polyglot-revenue-orchestrator.json
+          cmp n8n/customer-lead-capture.json public/workflows/customer-lead-capture.json

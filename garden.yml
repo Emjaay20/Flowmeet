@@ -1,0 +1,57 @@
+apiVersion: garden.io/v1
+kind: Project
+name: flowmeet-platform
+environments:
+  - name: local
+    defaultNamespace: flowmeet-lab
+providers:
+  - name: local-kubernetes
+    environments: [local]
+    context: kind-flowmeet-lab
+    namespace: flowmeet-lab
+
+---
+kind: Build
+type: container
+name: flowmeet-crawler-image
+description: Build Rust crawler and permissions workspace via cargo-chef
+source:
+  path: crawler
+spec:
+  dockerfile: Dockerfile
+
+---
+kind: Deploy
+type: helm
+name: flowmeet-crawler
+description: Deploy FlowMeet Rust crawler via Helm into local Kubernetes lab
+dependencies:
+  - build.flowmeet-crawler-image
+spec:
+  chart:
+    path: deploy/helm/flowmeet
+  values:
+    crawler:
+      image:
+        repository: ${actions.build.flowmeet-crawler-image.outputs.deployment-image-name}
+        tag: ${actions.build.flowmeet-crawler-image.version}
+        pullPolicy: IfNotPresent
+      replicaCount: 2
+      autoscaling:
+        enabled: false
+
+---
+kind: Test
+type: exec
+name: rust-workspace-tests
+description: Run Rust formatter, Clippy, workspace unit tests, and MCP smoke test
+spec:
+  command:
+    - sh
+    - -c
+    - |
+      cd crawler &&
+      cargo fmt --all -- --check &&
+      cargo clippy --workspace --all-targets -- -D warnings &&
+      cargo test --workspace &&
+      python3 ../scripts/test_mcp.py
