@@ -1,134 +1,92 @@
-name: aetherhost-flowmeet
-
+name: flowmeet-platform
 services:
   flowmeet-web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    env_file:
-      - path: .env
-        required: true
-      - path: .env.integrations
-        required: false
-    container_name: aetherhost-flowmeet-app-1
+    build: .
+    image: flowmeet-platform-web:local
     restart: unless-stopped
-    mem_limit: 300m
-    memswap_limit: 600m
+    mem_limit: 384m
+    env_file: .env
     environment:
       NODE_ENV: production
-      FLOWMEET_BOOKING_URL: https://cal.com/yusuf-abubakar-cvy8ug/technical-discovery
-      FLOWMEET_REP_NAME: Yusuf Abubakar
-      CALCOM_EVENT_TYPE_ID: 7779843
       PORT: 3000
-      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-https://xfvvrqgdklymfubnbiyz.supabase.co}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-sb_publishable_0BNj-1kLBekuFHwY2Pg9zQ_PgAM3GeW}
-      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:?SUPABASE_SERVICE_KEY must be set in .env}
-      FLOWMEET_INGEST_SECRET: ${FLOWMEET_INGEST_SECRET}
       RUST_CRAWLER_URL: http://flowmeet-crawler:8081
       GOLANG_CONCIERGE_URL: http://flowmeet-concierge:8082
       PYTHON_AI_BRAIN_URL: http://flowmeet-ai-brain:8083
       N8N_INTERNAL_WEBHOOK_URL: http://flowmeet-n8n:5678/webhook/flowmeet-polyglot-triage
-    ports:
-      - "3000:3000"
     depends_on:
-      - flowmeet-crawler
-      - flowmeet-concierge
-      - flowmeet-ai-brain
+      flowmeet-crawler:
+        condition: service_healthy
+      flowmeet-concierge:
+        condition: service_healthy
+      flowmeet-ai-brain:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
     labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=aetherhost-net"
-      - "traefik.http.routers.flowmeet-app.rule=Host(`flowmeet.aetherhost.com.ng`)"
-      - "traefik.http.routers.flowmeet-app.entrypoints=websecure"
-      - "traefik.http.routers.flowmeet-app.tls.certresolver=letsencrypt"
-      - "traefik.http.services.flowmeet-app.loadbalancer.server.port=3000"
-    networks:
-      - flowmeet-internal
-      - aetherhost-net
-
+      traefik.enable: "true"
+      traefik.docker.network: aetherhost-net
+      traefik.http.routers.flowmeet-platform-ng.rule: Host(`flowmeet.aetherhost.com.ng`)
+      traefik.http.routers.flowmeet-platform-ng.priority: "100"
+      traefik.http.routers.flowmeet-platform-ng.entrypoints: websecure
+      traefik.http.routers.flowmeet-platform-ng.tls.certresolver: letsencrypt
+      traefik.http.routers.flowmeet-platform-ng.service: flowmeet-platform-ng
+      traefik.http.services.flowmeet-platform-ng.loadbalancer.server.port: "3000"
+    networks: [internal, aetherhost-net]
   flowmeet-crawler:
-    build:
-      context: ./crawler
-      dockerfile: Dockerfile
-    container_name: flowmeet-crawler
+    build: ./crawler
     restart: unless-stopped
-    mem_limit: 45m
-    memswap_limit: 100m
+    mem_limit: 128m
     environment:
-      RUST_LOG: "flowmeet_crawler=info,axum=info"
-      TOKIO_WORKER_THREADS: 2
-    networks:
-      - flowmeet-internal
-
+      FLOWMEET_SERVICE_TOKEN: ${FLOWMEET_SERVICE_TOKEN:?Set a service token of at least 32 characters}
+      RUST_LOG: flowmeet_crawler=info
+      TOKIO_WORKER_THREADS: "2"
+    networks: [internal]
   flowmeet-concierge:
-    build:
-      context: ./concierge
-      dockerfile: Dockerfile
-    container_name: flowmeet-concierge
+    build: ./concierge
     restart: unless-stopped
-    mem_limit: 35m
-    memswap_limit: 80m
+    mem_limit: 64m
     environment:
-      GOMAXPROCS: 2
-      GOGC: 100
-    networks:
-      - flowmeet-internal
-
+      GOMAXPROCS: "2"
+    networks: [internal]
   flowmeet-ai-brain:
-    build:
-      context: ./ai-brain
-      dockerfile: Dockerfile
-    container_name: flowmeet-ai-brain
+    build: ./ai-brain
     restart: unless-stopped
-    mem_limit: 95m
-    memswap_limit: 180m
-    environment:
-      PYTHONUNBUFFERED: 1
-    networks:
-      - flowmeet-internal
-
+    mem_limit: 128m
+    networks: [internal]
   flowmeet-n8n:
-    image: n8nio/n8n:latest
-    container_name: flowmeet-n8n
+    image: ${N8N_IMAGE:-n8nio/n8n:2.46.6}
     restart: unless-stopped
-    mem_limit: 1024m
-    memswap_limit: 1536m
-    env_file:
-      - path: .env
-        required: true
-      - path: .env.integrations
-        required: false
+    mem_limit: 768m
     environment:
-      N8N_HOST: n8n.aetherhost.com.ng
-      N8N_PORT: 5678
-      N8N_PROTOCOL: https
-      WEBHOOK_URL: https://n8n.aetherhost.com.ng/
-      N8N_WEBHOOK_URL: https://n8n.aetherhost.com.ng/
-      N8N_PROXY_HOPS: "1"
-      NODE_OPTIONS: "--max-old-space-size=768"
-      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
-      FLOWMEET_INGEST_SECRET: ${FLOWMEET_INGEST_SECRET}
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?Set an encryption key}
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_PERSONALIZATION_ENABLED: "false"
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "true"
+      N8N_PAYLOAD_SIZE_MAX: "1"
+      N8N_SECURE_COOKIE: "false"
       GENERIC_TIMEZONE: Africa/Lagos
+      NODE_OPTIONS: --max-old-space-size=512
+      EXECUTIONS_DATA_SAVE_ON_SUCCESS: none
+      EXECUTIONS_DATA_SAVE_ON_ERROR: none
+      EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS: "false"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5678/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 6
+    ports: ["127.0.0.1:5680:5678"]
     volumes:
-      - flowmeet-n8n-data:/home/node/.n8n
+      - n8n-data:/home/node/.n8n
       - ./n8n:/workflows:ro
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=aetherhost-net"
-      - "traefik.http.routers.flowmeet-n8n.rule=Host(`n8n.aetherhost.com.ng`) || Host(`flowmeet-n8n.aetherhost.com.ng`)"
-      - "traefik.http.routers.flowmeet-n8n.entrypoints=websecure"
-      - "traefik.http.routers.flowmeet-n8n.tls.certresolver=letsencrypt"
-      - "traefik.http.services.flowmeet-n8n.loadbalancer.server.port=5678"
-    networks:
-      - flowmeet-internal
-      - aetherhost-net
-
+    networks: [internal]
 volumes:
-  flowmeet-n8n-data:
-    name: flowmeet_flowmeet-n8n-data
-    external: true
-
+  n8n-data:
 networks:
-  flowmeet-internal:
-    driver: bridge
+  internal:
   aetherhost-net:
     external: true

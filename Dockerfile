@@ -14,6 +14,8 @@ COPY . .
 # Set production env vars during build
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+# Route modules are collected at build time; real credentials are runtime-only.
+ENV SUPABASE_SERVICE_KEY=build-only-placeholder
 
 # Public Supabase variables for client bundle
 ARG NEXT_PUBLIC_SUPABASE_URL=https://xfvvrqgdklymfubnbiyz.supabase.co

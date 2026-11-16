@@ -17,44 +17,11 @@ where
     type Rejection = Response;
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        let headers = &parts.headers;
-
-        // Try to read x-subject-id header; default to internal mesh or guest identity
-        let subject_id = headers
-            .get("x-subject-id")
-            .and_then(|h| h.to_str().ok())
-            .unwrap_or_else(|| {
-                if headers.get("x-internal-mesh").is_some() {
-                    "svc:flowmeet-mesh"
-                } else {
-                    "user:guest"
-                }
-            })
-            .to_string();
-
-        let tenant_id = headers
-            .get("x-tenant-id")
-            .and_then(|h| h.to_str().ok())
-            .map(|s| s.to_string());
-
-        let roles_header = headers
-            .get("x-subject-roles")
-            .and_then(|h| h.to_str().ok())
-            .unwrap_or("operator");
-
-        let roles: std::collections::HashSet<String> = roles_header
-            .split(',')
-            .map(|s| s.trim().to_string())
-            .filter(|s| !s.is_empty())
-            .collect();
-
-        let subject = Subject {
-            id: subject_id,
-            tenant_id,
-            roles,
-            direct_flags: crate::ActionFlags::NONE,
-            attributes: std::collections::HashMap::new(),
-        };
+        // Identity must be inserted by trusted authentication middleware.
+        // Caller-supplied identity and role headers are never authentication.
+        let subject = parts.extensions.get::<Subject>().cloned().ok_or_else(|| {
+            axum::response::IntoResponse::into_response(PermissionError::MissingIdentity)
+        })?;
 
         Ok(AuthenticatedSubject(subject))
     }

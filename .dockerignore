@@ -5,3 +5,10 @@ node_modules
 README.md
 .system_generated
 crawler/target
+
+.env
+.env.*
+**/target
+**/__pycache__
+
+.lab

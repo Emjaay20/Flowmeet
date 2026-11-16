@@ -24,9 +24,10 @@ html2md = "0.2"
 regex = "1.10"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-tower = { version = "0.4", features = ["limit", "timeout"] }
+tower = { version = "0.4", features = ["limit", "timeout", "util"] }
 tower-http = { version = "0.5", features = ["cors", "trace"] }
 parking_lot = "0.12"
+uuid = { version = "1", features = ["v4"] }
 time = { version = "0.3", features = ["formatting", "macros"] }
 
 [profile.release]

@@ -10,41 +10,14 @@ const supabase = createClient(
 
 export async function POST(req: Request) {
     try {
-        const body = await req.json().catch(() => ({}));
-        const reqUserId = body.user_id;
-        const reqEmail = body.email;
-
-        // 1. Try session client first
         const sessionClient = await createSessionClient();
-        const { data: { user: sessionUser } } = await sessionClient.auth.getUser();
-
-        let user_id = sessionUser?.id;
-        let email = sessionUser?.email;
-
-        // 2. If session cookie isn't present yet (e.g. freshly called right after client-side signUp)
-        if ((!user_id || !email) && reqUserId && reqEmail) {
-            const { data: adminData, error: adminErr } = await supabase.auth.admin.getUserById(reqUserId);
-            if (!adminErr && adminData?.user && adminData.user.email?.toLowerCase() === reqEmail.toLowerCase()) {
-                user_id = adminData.user.id;
-                email = adminData.user.email;
-            }
-        }
-
-        // 3. Fallback: Lookup by email if user_id wasn't resolved
-        if ((!user_id || !email) && reqEmail) {
-            const { data: usersData, error: listErr } = await supabase.auth.admin.listUsers();
-            if (!listErr && usersData?.users) {
-                const found = usersData.users.find(u => u.email?.toLowerCase() === reqEmail.toLowerCase());
-                if (found) {
-                    user_id = found.id;
-                    email = found.email;
-                }
-            }
-        }
-
-        if (!user_id || !email) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+        const bearer = req.headers.get("authorization")?.replace(/^Bearer /, "");
+        const { data: { user }, error: authError } = bearer
+            ? await supabase.auth.getUser(bearer)
+            : await sessionClient.auth.getUser();
+        const user_id = user?.id, email = user?.email;
+        if (authError || !user_id || !email || !user.email_confirmed_at)
+            return NextResponse.json({ error: "Sign in with a verified email before creating a workspace" }, { status: 401 });
 
         // Check if user already has a workspace
         const { data: membership, error: membershipError } = await supabase

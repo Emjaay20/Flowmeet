@@ -215,7 +215,7 @@ impl PolicyEngine {
         let mut hierarchy = RoleHierarchy::new();
         hierarchy.add_inheritance("platform_admin", "operator");
         hierarchy.add_inheritance("operator", "viewer");
-        hierarchy.add_inheritance("operator", "crawler_agent");
+        // Tenant-bound agents are separate from trusted service operators.
         engine.set_hierarchy(hierarchy);
 
         // Rule 1: Superuser override
@@ -254,7 +254,7 @@ impl PolicyEngine {
                     "domain:localhost*",
                     "domain:127.0.0.1*",
                     "domain:169.254.*",
-                    "domain:*.internal",
+                    "domain:internal",
                 ])
                 .build(),
         );
@@ -316,14 +316,19 @@ impl PolicyEngine {
 
             // Check tenant isolation
             if rule.enforce_tenant_isolation {
-                if let (Some(subj_tenant), Some(ctx_tenant)) =
-                    (&subject.tenant_id, &context.tenant_id)
-                {
-                    if subj_tenant != ctx_tenant && subj_tenant != "system" {
+                match (&subject.tenant_id, &context.tenant_id) {
+                    (Some(actual), Some(expected)) if !actual.is_empty() && actual == expected => {}
+                    _ => {
                         return Err(PermissionError::TenantMismatch {
-                            expected: ctx_tenant.clone(),
-                            actual: subj_tenant.clone(),
-                        });
+                            expected: context
+                                .tenant_id
+                                .clone()
+                                .unwrap_or_else(|| "<missing>".into()),
+                            actual: subject
+                                .tenant_id
+                                .clone()
+                                .unwrap_or_else(|| "<missing>".into()),
+                        })
                     }
                 }
             }
@@ -359,6 +364,38 @@ impl PolicyEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn tenant_context_must_be_present_and_equal() {
+        let engine = PolicyEngine::flowmeet_standard();
+        let agent = Subject::ai_agent("agent", "alpha");
+        assert!(engine
+            .evaluate(
+                &agent,
+                "crawler:scrape",
+                "domain:example.com",
+                &EvaluationContext::default()
+            )
+            .is_err());
+        let unbound = Subject::builder("agent").role("crawler_agent").build();
+        assert!(engine
+            .evaluate(
+                &unbound,
+                "crawler:scrape",
+                "domain:example.com",
+                &EvaluationContext::for_tenant("alpha")
+            )
+            .is_err());
+        let system = Subject::ai_agent("agent", "system");
+        assert!(engine
+            .evaluate(
+                &system,
+                "crawler:scrape",
+                "domain:example.com",
+                &EvaluationContext::for_tenant("alpha")
+            )
+            .is_err());
+    }
 
     #[test]
     fn test_role_hierarchy_transitive() {

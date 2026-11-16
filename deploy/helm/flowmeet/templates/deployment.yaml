@@ -42,6 +42,11 @@ spec:
               containerPort: 8081
               protocol: TCP
           env:
+            - name: FLOWMEET_SERVICE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "crawler.auth.existingSecret is required" .Values.crawler.auth.existingSecret }}
+                  key: service-token
             - name: RUST_LOG
               value: {{ .Values.crawler.env.RUST_LOG | quote }}
             - name: TOKIO_WORKER_THREADS

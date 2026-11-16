@@ -12,7 +12,7 @@ export async function POST(req:Request) {
  catch{return NextResponse.json({error:'Invalid signed calendar event'},{status:400});}
  if(!event) return NextResponse.json({ignored:true});
  const db=createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.SUPABASE_SERVICE_KEY!);
- const {error}=await db.from('integration_events').insert({id:event.id,workspace_id:workspace,type:event.type,payload:event});
+ const {error}=await db.from('integration_events').insert({id:event.id,workspace_id:workspace,type:event.type,payload:event,results:{}});
  if(error?.code==='23505') return NextResponse.json({accepted:true,duplicate:true});
  if(error) return NextResponse.json({error:'Booking could not be persisted'},{status:503});
  return NextResponse.json({accepted:true,status:'pending'},{status:202});

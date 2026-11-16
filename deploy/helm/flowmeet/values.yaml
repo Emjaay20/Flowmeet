@@ -6,6 +6,8 @@ global:
 
 crawler:
   enabled: true
+  auth:
+    existingSecret: flowmeet-service-auth
   replicaCount: 2
 
   image:
@@ -70,4 +72,6 @@ crawler:
 
 networkPolicy:
   enabled: true
+  ingressNamespaceLabels:
+    flowmeet-access: allowed
   blockCloudMetadata: true

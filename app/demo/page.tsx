@@ -1,15 +1,14 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
 
 function LeadForm() {
     const [status, setStatus] = useState("");
     const [loading, setLoading] = useState(false);
-    const searchParams = useSearchParams();
-    const userId = searchParams.get("userId");
+    const [sendEmail, setSendEmail] = useState(false);
+    const [requestKey, setRequestKey] = useState<string | null>(null);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -17,7 +16,7 @@ function LeadForm() {
         setStatus("");
         const form = e.currentTarget;
         const formData = {
-            userId,
+            send_booking_email: sendEmail,
             name: (form.elements.namedItem("name") as HTMLInputElement).value,
             email: (form.elements.namedItem("email") as HTMLInputElement).value,
             company: (form.elements.namedItem("company") as HTMLInputElement).value,
@@ -25,24 +24,28 @@ function LeadForm() {
             region: (form.elements.namedItem("region") as HTMLSelectElement).value,
         };
 
+        const idempotencyKey = requestKey || crypto.randomUUID();
+        setRequestKey(idempotencyKey);
         try {
             const res = await fetch("/api/leads", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
                 body: JSON.stringify(formData),
             });
 
             const data = await res.json();
 
+            if (!res.ok) throw new Error(data.error || "Could not save the lead");
+            setRequestKey(null);
             if (data.qualified && data.bookingUrl) {
                 window.location.href = data.bookingUrl;
             } else {
-                setStatus("Thanks! Your submission was qualified and queued for routing.");
+                setStatus("Lead saved. This enquiry is in the self-service queue. No meeting has been booked.");
                 form.reset();
                 setLoading(false);
             }
         } catch (err) {
-            setStatus("Unable to route at this moment. Please try again.");
+            setStatus(err instanceof Error ? err.message : "Unable to save. Please try again.");
             setLoading(false);
         }
     };
@@ -63,10 +66,10 @@ function LeadForm() {
                         F
                     </div>
                     <h1 className="font-editorial text-3xl font-normal tracking-tight text-zinc-950">
-                        Flowmeet Form Demo
+                        Save a workspace lead
                     </h1>
                     <p className="text-xs text-zinc-500 font-sans">
-                        Simulate an inbound buyer submitting a standard web form
+                        Sign in first. Submissions are saved in your workspace.
                     </p>
                 </div>
 
@@ -128,6 +131,7 @@ function LeadForm() {
                         </select>
                     </div>
 
+                    <label className="flex gap-2 text-xs text-zinc-600"><input type="checkbox" checked={sendEmail} onChange={e=>setSendEmail(e.target.checked)}/> Send one booking email if this lead qualifies and a calendar link is configured.</label>
                     <button
                         type="submit"
                         disabled={loading}

@@ -47,3 +47,7 @@ __pycache__/
 # rust
 target/
 crawler/target/
+
+!.env.example
+
+.lab/

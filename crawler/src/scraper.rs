@@ -22,65 +22,113 @@ pub struct ScrapeResponse {
     pub firmographic_signals: FirmographicSignals,
 }
 
+const MAX_BODY_BYTES: usize = 2 * 1024 * 1024;
+
 fn is_public_ip(ip: &IpAddr) -> bool {
     match ip {
-        IpAddr::V4(v4) => {
-            !(v4.is_loopback()
-                || v4.is_private()
-                || v4.is_link_local()
-                || v4.is_unspecified()
-                || v4.is_broadcast()
-                || v4.is_documentation())
+        IpAddr::V4(v) => {
+            let [a, b, _, _] = v.octets();
+            !(v.is_private()
+                || v.is_loopback()
+                || v.is_link_local()
+                || v.is_unspecified()
+                || v.is_broadcast()
+                || v.is_documentation()
+                || a == 0
+                || a >= 224
+                || (a == 100 && (64..=127).contains(&b))
+                || (a == 198 && (b == 18 || b == 19))
+                || (a == 192 && b == 0))
         }
-        IpAddr::V6(v6) => {
-            let seg0 = v6.segments()[0];
-            !(v6.is_loopback()
-                || v6.is_unspecified()
-                || (seg0 & 0xfe00) == 0xfc00 // unique local
-                || (seg0 & 0xffc0) == 0xfe80) // link local
+        IpAddr::V6(v) => {
+            (v.segments()[0] & 0xe000) == 0x2000
+                && !(v.segments()[0] == 0x2001 && v.segments()[1] <= 0x1ff)
+                && !(v.segments()[0] == 0x2001 && v.segments()[1] == 0xdb8)
+                && v.segments()[0] != 0x2002
+                && !(v.segments()[0] == 0x3fff && v.segments()[1] < 0x1000)
         }
     }
 }
 
-/// A host is acceptable when it is a dotted name that is not an IP literal or
-/// a local-looking name. This is checked for redirects.
-fn is_plain_public_name(host: &str) -> bool {
-    let h = host.to_ascii_lowercase();
-    h.contains('.')
-        && h.parse::<IpAddr>().is_err()
-        && !h.ends_with(".local")
-        && !h.ends_with(".internal")
-        && h != "localhost"
+fn validate_url(url: &reqwest::Url) -> Result<(), String> {
+    let host = url
+        .host_str()
+        .ok_or("URL has no host")?
+        .to_ascii_lowercase();
+    if !matches!(url.scheme(), "http" | "https")
+        || !url.username().is_empty()
+        || url.password().is_some()
+        || !matches!(url.port_or_known_default(), Some(80 | 443))
+        || host.parse::<IpAddr>().is_ok()
+        || !host.contains('.')
+        || host.ends_with('.')
+        || host.ends_with(".local")
+        || host.ends_with(".internal")
+        || host.ends_with(".localhost")
+    {
+        return Err("Only public HTTP(S) hostnames on ports 80/443 are allowed".into());
+    }
+    Ok(())
 }
 
-/// Refuses to fetch anything that resolves to a private or loopback address,
-/// so the crawler cannot be pointed at other containers or the host network.
-async fn ensure_public(target_url: &str) -> Result<(), String> {
-    let url = reqwest::Url::parse(target_url).map_err(|e| format!("invalid URL: {e}"))?;
-    let host = url.host_str().ok_or("URL has no host")?.to_string();
-    if !is_plain_public_name(&host) {
-        return Err(format!("{host} is not a public hostname"));
-    }
-    let port = url.port_or_known_default().unwrap_or(443);
-    let lookup = tokio::time::timeout(
-        std::time::Duration::from_secs(4),
-        tokio::net::lookup_host((host.as_str(), port)),
-    )
-    .await
-    .map_err(|_| format!("DNS lookup for {host} timed out"))?;
-    let addrs = lookup.map_err(|e| format!("could not resolve {host}: {e}"))?;
-    let mut any = false;
-    for addr in addrs {
-        any = true;
-        if !is_public_ip(&addr.ip()) {
-            return Err(format!("{host} resolves to a non-public address"));
+/// Pin each connection to validated DNS addresses. Revalidate every redirect.
+async fn fetch_public(mut url: reqwest::Url) -> Result<String, String> {
+    for hop in 0..=3 {
+        validate_url(&url)?;
+        let host = url.host_str().unwrap().to_string();
+        let addrs: Vec<_> = tokio::time::timeout(
+            std::time::Duration::from_secs(3),
+            tokio::net::lookup_host((host.as_str(), url.port_or_known_default().unwrap())),
+        )
+        .await
+        .map_err(|_| "DNS lookup timed out")?
+        .map_err(|e| format!("DNS lookup failed: {e}"))?
+        .collect();
+        if addrs.is_empty() || addrs.iter().any(|a| !is_public_ip(&a.ip())) {
+            return Err("Target resolves to a non-public address".into());
         }
+        let client = reqwest::Client::builder()
+            .no_proxy()
+            .resolve_to_addrs(&host, &addrs)
+            .redirect(reqwest::redirect::Policy::none())
+            .timeout(std::time::Duration::from_secs(8))
+            .user_agent("Flowmeet-Crawler/3.0")
+            .build()
+            .map_err(|e| e.to_string())?;
+        let mut response = client
+            .get(url.clone())
+            .send()
+            .await
+            .map_err(|e| e.to_string())?;
+        if response.status().is_redirection() {
+            if hop == 3 {
+                return Err("Too many redirects".into());
+            }
+            let next = response
+                .headers()
+                .get(reqwest::header::LOCATION)
+                .ok_or("Redirect has no Location")?
+                .to_str()
+                .map_err(|_| "Invalid redirect")?;
+            url = url.join(next).map_err(|_| "Invalid redirect URL")?;
+            continue;
+        }
+        if !response.status().is_success() {
+            return Err(format!("Target returned HTTP {}", response.status()));
+        }
+        if response.content_length().unwrap_or(0) > MAX_BODY_BYTES as u64 {
+            return Err("Page exceeds 2 MiB limit".into());
+        }
+        let mut body = Vec::new();
+        while let Some(chunk) = response.chunk().await.map_err(|e| e.to_string())? {
+            if body.len() + chunk.len() > MAX_BODY_BYTES {
+                return Err("Page exceeds 2 MiB limit".into());
+            }
+            body.extend_from_slice(&chunk);
+        }
+        return Ok(String::from_utf8_lossy(&body).into_owned());
     }
-    if any {
-        Ok(())
-    } else {
-        Err(format!("{host} did not resolve"))
-    }
+    Err("Too many redirects".into())
 }
 
 /// Fetches a page over plain HTTP and converts it to Markdown. There is no
@@ -94,43 +142,11 @@ pub async fn perform_scrape(req: ScrapeRequest) -> Result<ScrapeResponse, String
         format!("https://{}", req.url)
     };
 
-    ensure_public(&target_url).await?;
-
-    let redirects = reqwest::redirect::Policy::custom(|attempt| {
-        let ok = attempt
-            .url()
-            .host_str()
-            .map(is_plain_public_name)
-            .unwrap_or(false);
-        if attempt.previous().len() >= 3 || !ok {
-            attempt.stop()
-        } else {
-            attempt.follow()
-        }
-    });
-
-    let client = reqwest::Client::builder()
-        .redirect(redirects)
-        .timeout(std::time::Duration::from_secs(8))
-        .user_agent("Flowmeet-Crawler/2.0")
-        .build()
-        .map_err(|e| format!("could not build HTTP client: {e}"))?;
-
-    let resp = client
-        .get(&target_url)
-        .send()
+    let url = reqwest::Url::parse(&target_url).map_err(|e| format!("Invalid URL: {e}"))?;
+    let html_content = tokio::time::timeout(std::time::Duration::from_secs(10), fetch_public(url))
         .await
-        .map_err(|e| format!("fetch failed: {e}"))?;
-
-    let status_code = resp.status().as_u16();
-    if !resp.status().is_success() {
-        return Err(format!("{target_url} returned HTTP {status_code}"));
-    }
-
-    let html_content = resp
-        .text()
-        .await
-        .map_err(|e| format!("could not read response body: {e}"))?;
+        .map_err(|_| "Page read exceeded 10 seconds")??;
+    let status_code = 200;
     let bytes_fetched = html_content.len();
 
     let document = Html::parse_document(&html_content);
@@ -154,7 +170,7 @@ pub async fn perform_scrape(req: ScrapeRequest) -> Result<ScrapeResponse, String
     let mut llm_markdown = html2md::parse_html(&html_content);
 
     // max_tokens is approximate: four characters per token.
-    let max_chars = req.max_tokens.unwrap_or(4096) * 4;
+    let max_chars = req.max_tokens.unwrap_or(4096).clamp(1, 8192) * 4;
     if llm_markdown.chars().count() > max_chars {
         llm_markdown = llm_markdown.chars().take(max_chars).collect::<String>();
         llm_markdown.push_str("\n[truncated]");
@@ -172,4 +188,51 @@ pub async fn perform_scrape(req: ScrapeRequest) -> Result<ScrapeResponse, String
         llm_markdown,
         firmographic_signals,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn blocks_non_public_addresses() {
+        for ip in [
+            "127.0.0.1",
+            "10.0.0.1",
+            "169.254.169.254",
+            "100.64.0.1",
+            "198.18.0.1",
+            "224.0.0.1",
+            "240.0.0.1",
+            "::1",
+            "::ffff:127.0.0.1",
+            "fd00::1",
+            "fe80::1",
+            "2001:db8::1",
+            "2002:7f00:1::",
+            "3fff::1",
+        ] {
+            assert!(!is_public_ip(&ip.parse().unwrap()), "{ip}");
+        }
+        assert!(is_public_ip(&"1.1.1.1".parse().unwrap()));
+        assert!(is_public_ip(&"2606:4700:4700::1111".parse().unwrap()));
+    }
+    #[test]
+    fn validates_initial_and_redirect_urls() {
+        for url in [
+            "http://127.0.0.1",
+            "http://localhost",
+            "http://app.internal",
+            "http://app.local",
+            "https://user:password@example.com",
+            "ftp://example.com",
+            "http://example.com:8080",
+            "http://example.com.",
+        ] {
+            assert!(
+                validate_url(&reqwest::Url::parse(url).unwrap()).is_err(),
+                "{url}"
+            );
+        }
+        assert!(validate_url(&reqwest::Url::parse("https://example.com/docs").unwrap()).is_ok());
+    }
 }

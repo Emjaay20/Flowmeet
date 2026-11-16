@@ -19,7 +19,7 @@ export async function POST(req:Request) {
  if(event.type==="meeting.booked" && (typeof event.startDateTime!=="string" || typeof event.endDateTime!=="string" || !Number.isFinite(Date.parse(event.startDateTime)) || !Number.isFinite(Date.parse(event.endDateTime)) || Date.parse(event.endDateTime)<=Date.parse(event.startDateTime) || typeof event.meetingUrl!=="string" || !event.meetingUrl.startsWith("https://")))
   return NextResponse.json({error:"Confirmed meeting times and HTTPS meeting URL required"},{status:400});
  const db=createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.SUPABASE_SERVICE_KEY!);
- const {error}=await db.from("integration_events").insert({id:event.id,workspace_id:workspace,type:event.type,payload:event});
+ const {error}=await db.from("integration_events").insert({id:event.id,workspace_id:workspace,type:event.type,payload:event,results:{}});
  if (error?.code==="23505") return NextResponse.json({accepted:true,duplicate:true});
  if (error) return NextResponse.json({error:"Event could not be persisted"},{status:503});
  return NextResponse.json({accepted:true,status:"pending"},{status:202});

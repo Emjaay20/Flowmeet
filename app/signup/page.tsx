@@ -38,6 +38,12 @@ export default function SignupPage() {
             return;
         }
 
+        if (!data.session) {
+            setError("Check your inbox to confirm your email, then sign in to finish setting up your workspace.");
+            setLoading(false);
+            return;
+        }
+
         try {
             // Call onboarding to attach workspace & API key
             const res = await fetch("/api/onboarding", {

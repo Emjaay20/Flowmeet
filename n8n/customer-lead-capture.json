@@ -1,0 +1,115 @@
+{
+  "id": "flowmeetCaptureV1",
+  "name": "FlowMeet \u2014 customer capture (explicit delivery)",
+  "active": false,
+  "nodes": [
+    {
+      "id": "capture-hook",
+      "name": "Authenticated customer capture",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "flowmeet-capture-v1",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "flowmeet-customer-capture",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "flowmeetCaptureWebhookAuth",
+          "name": "FlowMeet customer webhook authentication"
+        }
+      }
+    },
+    {
+      "id": "save-lead",
+      "name": "Save lead and optional delivery",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://flowmeet-web:3000/api/leads",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ $json.headers['idempotency-key'] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 35000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "flowmeetCaptureApiKey",
+          "name": "FlowMeet customer workspace API key"
+        }
+      }
+    },
+    {
+      "id": "return-result",
+      "name": "Return persisted result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        520,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ...$json, n8n_execution_id: $execution.id }) }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Authenticated customer capture": {
+      "main": [
+        [
+          {
+            "node": "Save lead and optional delivery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save lead and optional delivery": {
+      "main": [
+        [
+          {
+            "node": "Return persisted result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "executionTimeout": 40,
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "none",
+    "saveManualExecutions": false
+  },
+  "versionId": "e038bf1f-b827-4b5a-a046-20a328216f93"
+}

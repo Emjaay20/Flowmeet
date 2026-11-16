@@ -7,8 +7,7 @@ use std::time::Instant;
 /// Standard latency buckets for HTTP scraping in milliseconds.
 const SCRAPE_BUCKETS: &[u64] = &[25, 50, 100, 250, 500, 1000, 2500, 5000];
 
-/// Lock-free, zero-allocation Prometheus telemetry registry.
-/// Designed for low-latency platform microservices and memory-constrained environments (<20MB RSS).
+/// Prometheus telemetry with atomic counters and locked label maps.
 #[derive(Debug, Default)]
 pub struct TelemetryRegistry {
     // In-flight active requests gauge
@@ -26,6 +25,19 @@ pub struct TelemetryRegistry {
     // Policy evaluation latency tracker in nanoseconds
     policy_eval_nanos_sum: AtomicU64,
     policy_eval_count: AtomicU64,
+}
+
+pub struct ActiveRequest(pub Arc<TelemetryRegistry>);
+impl ActiveRequest {
+    pub fn start(registry: Arc<TelemetryRegistry>) -> Self {
+        registry.active_requests.fetch_add(1, Ordering::Relaxed);
+        Self(registry)
+    }
+}
+impl Drop for ActiveRequest {
+    fn drop(&mut self) {
+        self.0.active_requests.fetch_sub(1, Ordering::Relaxed);
+    }
 }
 
 impl TelemetryRegistry {
@@ -220,20 +232,28 @@ impl W3cTraceContext {
     pub fn from_header_or_generate(header: Option<&str>) -> Self {
         if let Some(h) = header {
             let parts: Vec<&str> = h.split('-').collect();
-            if parts.len() == 4 && parts[0] == "00" && parts[1].len() == 32 && parts[2].len() == 16
+            if parts.len() == 4
+                && parts[0] == "00"
+                && parts[1].len() == 32
+                && parts[2].len() == 16
+                && parts[3].len() == 2
+                && parts[1..].iter().all(|p| {
+                    p.bytes()
+                        .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+                })
+                && parts[1].bytes().any(|b| b != b'0')
+                && parts[2].bytes().any(|b| b != b'0')
             {
                 return Self {
                     trace_id: parts[1].to_string(),
                     parent_id: parts[2].to_string(),
-                    sampled: parts[3] == "01",
+                    sampled: u8::from_str_radix(parts[3], 16).unwrap_or(0) & 1 == 1,
                 };
             }
         }
 
-        // Generate pseudorandom trace & span IDs from time & address
-        let now = Instant::now().elapsed().as_nanos();
-        let trace_id = format!("{:032x}", now ^ 0xFEED_FACE_CAFE_BABE_DEAD_BEEF_0000_1111);
-        let parent_id = format!("{:016x}", (now as u64) ^ 0xA5A5_5A5A_1234_5678);
+        let trace_id = uuid::Uuid::new_v4().simple().to_string();
+        let parent_id = uuid::Uuid::new_v4().simple().to_string()[..16].to_string();
 
         Self {
             trace_id,
@@ -256,6 +276,26 @@ impl W3cTraceContext {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn active_request_gauge_recovers_when_scope_exits() {
+        let registry = TelemetryRegistry::new();
+        {
+            let _active = ActiveRequest::start(registry.clone());
+            assert_eq!(registry.active_requests.load(Ordering::Relaxed), 1);
+        }
+        assert_eq!(registry.active_requests.load(Ordering::Relaxed), 0);
+    }
+
+    #[test]
+    fn invalid_trace_ids_are_replaced_and_roots_are_unique() {
+        let a = W3cTraceContext::from_header_or_generate(Some(
+            "00-00000000000000000000000000000000-0000000000000000-01",
+        ));
+        let b = W3cTraceContext::from_header_or_generate(None);
+        assert_ne!(a.trace_id, "00000000000000000000000000000000");
+        assert_ne!(a.trace_id, b.trace_id);
+    }
 
     #[test]
     fn test_telemetry_registry_rendering() {

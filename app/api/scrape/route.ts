@@ -1,3 +1,4 @@
+import { serviceHeaders } from "@/app/lib/service-auth";
 import { NextResponse } from "next/server";
 import { checkRateLimit, clientIp } from "@/app/lib/cache";
 import { isAllowedDemoDomain } from "@/app/lib/scrape";
@@ -29,7 +30,7 @@ export async function POST(req: Request) {
     try {
         const res = await fetch(`${crawlerUrl()}/scrape`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", ...serviceHeaders() },
             signal: AbortSignal.timeout(12000),
             body: JSON.stringify({ url: domain, max_tokens: Number.isFinite(body.max_tokens) ? Math.min(body.max_tokens, 8192) : 4096 }),
         });

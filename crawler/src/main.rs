@@ -4,11 +4,13 @@ mod telemetry;
 
 use crate::scraper::{perform_scrape, ScrapeRequest};
 use crate::signals::analyze_signals;
-use crate::telemetry::{ScopedTimer, TelemetryRegistry, W3cTraceContext};
+use crate::telemetry::{ActiveRequest, ScopedTimer, TelemetryRegistry, W3cTraceContext};
 use axum::{
-    extract::State,
+    extract::{DefaultBodyLimit, Request, State},
     http::{HeaderMap, StatusCode},
+    middleware::{self, Next},
     response::IntoResponse,
+    response::Response,
     routing::{get, post},
     Json, Router,
 };
@@ -23,6 +25,8 @@ use tracing_subscriber::EnvFilter;
 
 #[derive(Clone)]
 pub struct AppState {
+    pub service_token: Arc<str>,
+    pub slots: Arc<tokio::sync::Semaphore>,
     pub policy_engine: Arc<PolicyEngine>,
     pub telemetry: Arc<TelemetryRegistry>,
 }
@@ -43,7 +47,15 @@ async fn main() {
     // Initialize platform authorization engine with standard FlowMeet policy definitions
     let policy_engine = Arc::new(PolicyEngine::flowmeet_standard());
     let telemetry = TelemetryRegistry::new();
+    let service_token =
+        std::env::var("FLOWMEET_SERVICE_TOKEN").expect("FLOWMEET_SERVICE_TOKEN must be configured");
+    assert!(
+        service_token.len() >= 32,
+        "service token must be at least 32 characters"
+    );
     let state = AppState {
+        service_token: Arc::from(service_token),
+        slots: Arc::new(tokio::sync::Semaphore::new(4)),
         policy_engine,
         telemetry,
     };
@@ -55,12 +67,20 @@ async fn main() {
         .allow_headers(Any);
 
     // Build Axum HTTP Router with shared platform state and metrics
+    let protected = Router::new()
+        .route("/scrape", post(handle_scrape))
+        .route("/analyze", post(handle_analyze))
+        .layer(DefaultBodyLimit::max(128 * 1024))
+        .route_layer(middleware::from_fn_with_state(
+            state.clone(),
+            authenticate_service,
+        ));
+
     let app = Router::new()
         .route("/", get(health_check))
         .route("/health", get(health_check))
         .route("/metrics", get(metrics_handler))
-        .route("/scrape", post(handle_scrape))
-        .route("/analyze", post(handle_analyze))
+        .merge(protected)
         .with_state(state)
         .layer(cors);
 
@@ -73,6 +93,37 @@ async fn main() {
     axum::serve(listener, app)
         .await
         .expect("Failed to start Axum HTTP server");
+}
+
+/// Only a configured service credential can establish the internal operator identity.
+async fn authenticate_service(
+    State(state): State<AppState>,
+    mut req: Request,
+    next: Next,
+) -> Response {
+    let valid = req
+        .headers()
+        .get("authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .map(|v| v == state.service_token.as_ref())
+        .unwrap_or(false);
+    if !valid {
+        return PermissionError::MissingIdentity.into_response();
+    }
+    let Ok(_permit) = state.slots.clone().try_acquire_owned() else {
+        return (
+            StatusCode::SERVICE_UNAVAILABLE,
+            "Crawler is busy; retry later",
+        )
+            .into_response();
+    };
+    req.extensions_mut().insert(
+        Subject::builder("svc:flowmeet-web")
+            .role("operator")
+            .build(),
+    );
+    next.run(req).await
 }
 
 /// Liveness probe with active telemetry check
@@ -100,23 +151,16 @@ async fn metrics_handler(State(state): State<AppState>) -> impl IntoResponse {
 async fn handle_scrape(
     State(state): State<AppState>,
     headers: HeaderMap,
-    auth: Option<AuthenticatedSubject>,
+    auth: AuthenticatedSubject,
     Json(payload): Json<ScrapeRequest>,
 ) -> impl IntoResponse {
     let trace_ctx = W3cTraceContext::from_header_or_generate(
         headers.get("traceparent").and_then(|h| h.to_str().ok()),
     );
     let timer = ScopedTimer::start();
-    state
-        .telemetry
-        .active_requests
-        .fetch_add(1, Ordering::Relaxed);
+    let _active = ActiveRequest::start(state.telemetry.clone());
 
-    let subject = auth.map(|a| a.0).unwrap_or_else(|| {
-        Subject::builder("svc:flowmeet-mesh")
-            .role("operator")
-            .build()
-    });
+    let subject = auth.0;
 
     let ctx = EvaluationContext::default();
     let resource = format!("domain:{}", payload.url);
@@ -137,10 +181,6 @@ async fn handle_scrape(
             StatusCode::FORBIDDEN.as_u16(),
             timer.elapsed_millis(),
         );
-        state
-            .telemetry
-            .active_requests
-            .fetch_sub(1, Ordering::Relaxed);
         error!("Scrape authorization denied for {}: {}", subject.id, err);
         return (
             [("traceparent", trace_ctx.to_header_value())],
@@ -184,11 +224,6 @@ async fn handle_scrape(
                 .into_response()
         }
     };
-
-    state
-        .telemetry
-        .active_requests
-        .fetch_sub(1, Ordering::Relaxed);
     ([("traceparent", trace_ctx.to_header_value())], response).into_response()
 }
 
@@ -203,23 +238,16 @@ struct AnalyzeRequest {
 async fn handle_analyze(
     State(state): State<AppState>,
     headers: HeaderMap,
-    auth: Option<AuthenticatedSubject>,
+    auth: AuthenticatedSubject,
     Json(payload): Json<AnalyzeRequest>,
 ) -> impl IntoResponse {
     let trace_ctx = W3cTraceContext::from_header_or_generate(
         headers.get("traceparent").and_then(|h| h.to_str().ok()),
     );
     let timer = ScopedTimer::start();
-    state
-        .telemetry
-        .active_requests
-        .fetch_add(1, Ordering::Relaxed);
+    let _active = ActiveRequest::start(state.telemetry.clone());
 
-    let subject = auth.map(|a| a.0).unwrap_or_else(|| {
-        Subject::builder("svc:flowmeet-mesh")
-            .role("operator")
-            .build()
-    });
+    let subject = auth.0;
 
     let ctx = EvaluationContext::default();
     let resource = format!("domain:{}", payload.url);
@@ -239,10 +267,6 @@ async fn handle_analyze(
             StatusCode::FORBIDDEN.as_u16(),
             timer.elapsed_millis(),
         );
-        state
-            .telemetry
-            .active_requests
-            .fetch_sub(1, Ordering::Relaxed);
         error!("Analyze authorization denied for {}: {}", subject.id, err);
         return (
             [("traceparent", trace_ctx.to_header_value())],
@@ -259,10 +283,6 @@ async fn handle_analyze(
     state
         .telemetry
         .record_http_request("/analyze", StatusCode::OK.as_u16(), duration);
-    state
-        .telemetry
-        .active_requests
-        .fetch_sub(1, Ordering::Relaxed);
 
     (
         [("traceparent", trace_ctx.to_header_value())],
@@ -278,11 +298,60 @@ async fn handle_analyze(
 mod tests {
     use super::*;
 
+    #[tokio::test]
+    async fn rejects_missing_and_spoofed_identity_headers() {
+        use tower::ServiceExt;
+        let state = AppState {
+            service_token: Arc::from("test-service-token-at-least-32-characters"),
+            slots: Arc::new(tokio::sync::Semaphore::new(4)),
+            policy_engine: Arc::new(PolicyEngine::flowmeet_standard()),
+            telemetry: TelemetryRegistry::new(),
+        };
+        let app = Router::new()
+            .route("/analyze", post(handle_analyze))
+            .route_layer(middleware::from_fn_with_state(
+                state.clone(),
+                authenticate_service,
+            ))
+            .with_state(state);
+        for authorization in [
+            None,
+            Some("Bearer incorrect"),
+            Some("Bearer test-service-token-at-least-32-characters"),
+        ] {
+            let mut builder = axum::http::Request::builder()
+                .method("POST")
+                .uri("/analyze")
+                .header("content-type", "application/json")
+                .header("x-subject-roles", "platform_admin")
+                .header("x-internal-mesh", "true");
+            if let Some(value) = authorization {
+                builder = builder.header("authorization", value);
+            }
+            let request = builder
+                .body(axum::body::Body::from(
+                    r#"{"url":"example.com","markdown":"Rust and Kubernetes"}"#,
+                ))
+                .unwrap();
+            let response = app.clone().oneshot(request).await.unwrap();
+            assert_eq!(
+                response.status(),
+                if authorization.is_some_and(|s| s.ends_with("32-characters")) {
+                    StatusCode::OK
+                } else {
+                    StatusCode::UNAUTHORIZED
+                }
+            );
+        }
+    }
+
     #[test]
     fn test_app_state_initialization() {
         let engine = Arc::new(PolicyEngine::flowmeet_standard());
         let telemetry = TelemetryRegistry::new();
         let state = AppState {
+            service_token: Arc::from("test-service-token-at-least-32-characters"),
+            slots: Arc::new(tokio::sync::Semaphore::new(4)),
             policy_engine: engine,
             telemetry,
         };

@@ -8,9 +8,9 @@ export default async function AdminPage({
     searchParams: { filter?: string }
 }) {
     const supabase = await createClient()
-    const { data: { session } } = await supabase.auth.getSession()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    if (!session) {
+    if (!user) {
         redirect('/login')
     }
 
@@ -18,7 +18,7 @@ export default async function AdminPage({
     const { data: workspaceUser } = await supabase
         .from("workspace_users")
         .select("workspace_id")
-        .eq("user_id", session.user.id)
+        .eq("user_id", user.id)
         .single();
 
     if (!workspaceUser) {

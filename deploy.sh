@@ -1,42 +1,12 @@
 #!/usr/bin/env bash
-set -e
-
-SERVER_HOST="root@194.163.172.101"
-REMOTE_DIR="/opt/aetherhost/deployments/flowmeet"
-
-echo "============================================================"
-echo "🚀 FlowMeet Polyglot Suite Deployment to AetherHost VPS"
-echo "Target: $SERVER_HOST"
-echo "Directory: $REMOTE_DIR"
-echo "Domain: https://flowmeet.aetherhost.com.ng"
-echo "============================================================"
-
-# 1. Ensure remote directory exists
-echo "📁 [1/4] Preparing remote deployment directory..."
-ssh $SERVER_HOST "mkdir -p $REMOTE_DIR && touch $REMOTE_DIR/.env.integrations"
-
-# 2. Sync codebase
-echo "📦 [2/4] Syncing codebase via rsync..."
-rsync -avz --delete \
-  --exclude="node_modules" \
-  --exclude=".next" \
-  --exclude=".git" \
-  --exclude="crawler/target" \
-  --exclude=".DS_Store" \
-  --exclude="._*" \
-  --exclude=".env.integrations" \
-  ./ $SERVER_HOST:$REMOTE_DIR/
-
-# 3. Build & Orchestrate on Server
-echo "🔨 [3/4] Building and launching multi-container services..."
-ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5 $SERVER_HOST "cd $REMOTE_DIR && docker compose -p aetherhost-flowmeet build && docker compose -p aetherhost-flowmeet up -d --remove-orphans"
-
-# 4. Verify Service Health
-echo "🔍 [4/4] Verifying running containers and health probes..."
-ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5 $SERVER_HOST "cd $REMOTE_DIR && docker compose -p aetherhost-flowmeet ps"
-
-echo ""
-echo "============================================================"
-echo "🎉 FlowMeet successfully deployed to production!"
-echo "Public URL: https://flowmeet.aetherhost.com.ng"
-echo "============================================================"
+set -euo pipefail
+SERVER_HOST="${FLOWMEET_DEPLOY_HOST:-root@194.163.172.101}"
+REMOTE_DIR="/srv/flowmeet-platform"
+cd "$(dirname "$0")"
+ssh "$SERVER_HOST" "mkdir -p '$REMOTE_DIR' && test -s '$REMOTE_DIR/.env'"
+# Server credentials and n8n data remain on the server. Do not copy local .env files.
+rsync -az --exclude=node_modules --exclude=.next --exclude=.git --exclude=target --exclude=.lab \
+  --exclude='.env*' --exclude=.DS_Store --exclude='._*' ./ "$SERVER_HOST:$REMOTE_DIR/"
+ssh -o ServerAliveInterval=30 "$SERVER_HOST" \
+  "cd '$REMOTE_DIR' && docker compose -p flowmeet-platform config --quiet && docker compose -p flowmeet-platform build && python3 scripts/bootstrap-n8n.py && docker compose -p flowmeet-platform up -d --wait --wait-timeout 120"
+python3 scripts/smoke.py https://flowmeet.aetherhost.com.ng --n8n

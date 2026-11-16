@@ -299,7 +299,7 @@ export default function AdminClient({
                                 <p style={{ fontSize: '28px', fontWeight: 'bold', color: '#0f172a' }}>{metrics.qualifiedLeads}</p>
                             </div>
                             <div style={{ flex: 1, backgroundColor: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderLeft: '4px solid #f59e0b' }}>
-                                <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '4px' }}>Conversion Rate</p>
+                                <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '4px' }}>Qualification Rate</p>
                                 <p style={{ fontSize: '28px', fontWeight: 'bold', color: '#0f172a' }}>{metrics.conversionRate}%</p>
                             </div>
                         </div>
@@ -342,7 +342,7 @@ export default function AdminClient({
                                                         ? 'bg-green-50 text-green-700 ring-green-600/20'
                                                         : 'bg-yellow-50 text-yellow-700 ring-yellow-600/20'
                                                         }`}>
-                                                        {lead.qualified ? 'Qualified' : 'Unqualified'}
+                                                        {lead.status === 'Meeting booked' ? 'Meeting booked' : lead.qualified ? 'Qualified' : 'Unqualified'}
                                                     </span>
                                                 </td>
                                                 <td className="whitespace-nowrap px-6 py-4 text-right">
@@ -438,12 +438,12 @@ export default function AdminClient({
                                                 name="clayApiKey"
                                                 id="clayApiKey"
                                                 className="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
-                                                placeholder="Enter your Clay API Key (leave empty for Simulation Mode)"
+                                                placeholder="Enter your Clay API Key"
                                                 value={clayApiKey}
                                                 onChange={(e) => setClayApiKey(e.target.value)}
                                             />
                                             <p className="mt-2 text-xs text-slate-500">
-                                                If left empty, we will simulate enrichment data for demo purposes.
+                                                Leave empty to keep external enrichment disabled. No enrichment data is invented.
                                             </p>
                                         </div>
                                     </div>

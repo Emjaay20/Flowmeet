@@ -44,7 +44,10 @@ enum Commands {
     /// Output Model Context Protocol (MCP) JSON tool definitions for AI agents (Cursor / Claude Code)
     McpTools,
 
-    /// Lint platform policies for dead rules, wildcard conflicts, or security anti-patterns
+    /// Serve read-only platform tools over MCP JSON-RPC on stdin/stdout.
+    ServeMcp,
+
+    /// Run executable security probes against the standard policy set
     LintPolicies,
 }
 
@@ -80,31 +83,27 @@ fn generate_agent_context() -> AgentArchitectureContext {
     AgentArchitectureContext {
         service: "flowmeet-crawler".to_string(),
         language: "Rust 2021 (Axum + Tokio + Scraper)".to_string(),
-        cgroup_budget_mb: 45,
-        target_latency_ms: 400,
+        cgroup_budget_mb: 128,
+        target_latency_ms: 10000,
         roles: vec![
             RoleInfo {
                 role: "platform_admin".to_string(),
                 description: "Superuser role with full bypass capability".to_string(),
-                inherits: vec![
-                    "operator".to_string(),
-                    "viewer".to_string(),
-                    "crawler_agent".to_string(),
-                ],
+                inherits: vec!["operator".to_string(), "viewer".to_string()],
             },
             RoleInfo {
                 role: "operator".to_string(),
                 description:
                     "Core service operator capable of scraping and firmographic extraction"
                         .to_string(),
-                inherits: vec!["viewer".to_string(), "crawler_agent".to_string()],
+                inherits: vec!["viewer".to_string()],
             },
             RoleInfo {
                 role: "crawler_agent".to_string(),
                 description:
                     "Autonomous AI agent principal restricted by tenant boundary isolation"
                         .to_string(),
-                inherits: vec!["viewer".to_string()],
+                inherits: vec![],
             },
             RoleInfo {
                 role: "viewer".to_string(),
@@ -122,14 +121,14 @@ fn generate_agent_context() -> AgentArchitectureContext {
                 method: "GET".to_string(),
                 path: "/health".to_string(),
                 required_action: "crawler:health".to_string(),
-                required_role: "viewer".to_string(),
+                required_role: "none (private network only)".to_string(),
                 description: "Liveness and telemetry check probe".to_string(),
             },
             EndpointInfo {
                 method: "GET".to_string(),
                 path: "/metrics".to_string(),
                 required_action: "crawler:metrics".to_string(),
-                required_role: "viewer".to_string(),
+                required_role: "none (private network only)".to_string(),
                 description: "Prometheus text format telemetry scraper".to_string(),
             },
             EndpointInfo {
@@ -153,7 +152,7 @@ fn generate_agent_context() -> AgentArchitectureContext {
             "domain:localhost* (SSRF protection)".to_string(),
             "domain:127.0.0.1* (Loopback isolation)".to_string(),
             "domain:169.254.* (Cloud Instance Metadata API isolation)".to_string(),
-            "domain:*.internal (Private VPC cluster boundary protection)".to_string(),
+            "DNS validation and address pinning enforce outbound network restrictions".to_string(),
         ],
     }
 }
@@ -163,6 +162,7 @@ fn main() {
     let engine = PolicyEngine::flowmeet_standard();
 
     match cli.command {
+        Commands::ServeMcp => serve_mcp(&engine),
         Commands::ExportContext { .. } => {
             let context = generate_agent_context();
             println!("{}", serde_json::to_string_pretty(&context).unwrap());
@@ -216,42 +216,15 @@ fn main() {
         }
 
         Commands::McpTools => {
-            let mcp_schema = json!({
-                "mcp_version": "2024-11-05",
-                "tools": [
-                    {
-                        "name": "flowmeet_check_permission",
-                        "description": "Verifies if an AI agent or service principal is authorized to access a domain or action",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "subject_id": { "type": "string", "description": "Principal ID e.g. agent:crawler-1" },
-                                "role": { "type": "string", "enum": ["platform_admin", "operator", "crawler_agent", "viewer"] },
-                                "action": { "type": "string", "description": "e.g. crawler:scrape" },
-                                "resource": { "type": "string", "description": "e.g. domain:stripe.com" }
-                            },
-                            "required": ["role", "action", "resource"]
-                        }
-                    },
-                    {
-                        "name": "flowmeet_get_cgroup_budget",
-                        "description": "Returns current memory, CPU, and latency constraints for the target microservice",
-                        "inputSchema": {
-                            "type": "object",
-                            "properties": {
-                                "service": { "type": "string", "enum": ["crawler", "concierge", "ai-brain"] }
-                            },
-                            "required": ["service"]
-                        }
-                    }
-                ]
-            });
-            println!("{}", serde_json::to_string_pretty(&mcp_schema).unwrap());
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&json!({"tools":mcp_tools()})).unwrap()
+            );
         }
 
         Commands::LintPolicies => {
             println!("Linting FlowMeet platform policies against security best practices...");
-            let sample_subject = Subject::builder("lint-checker").role("viewer").build();
+            let sample_subject = Subject::builder("lint-checker").role("operator").build();
             let mut pass_count = 0;
 
             // Check 1: Ensure loopback is blocked
@@ -302,6 +275,93 @@ fn main() {
                 "\nPlatform Policy Lint Complete: {}/3 security constraints satisfied.",
                 pass_count
             );
+            if pass_count != 3 {
+                std::process::exit(1);
+            }
+        }
+    }
+}
+
+fn mcp_tools() -> serde_json::Value {
+    json!([
+        {"name":"flowmeet_context","description":"Read architecture and operating constraints", "inputSchema":{"type":"object","properties":{},"additionalProperties":false}},
+        {"name":"flowmeet_check_permission","description":"Simulate policy evaluation; grants no access", "inputSchema":{"type":"object","properties":{"role":{"type":"string"},"action":{"type":"string"},"resource":{"type":"string"},"subject_tenant":{"type":"string"},"resource_tenant":{"type":"string"}},"required":["role","action","resource"],"additionalProperties":false}}
+    ])
+}
+
+fn serve_mcp(engine: &PolicyEngine) {
+    use std::io::{self, BufRead, Write};
+    let stdin = io::stdin();
+    let mut out = io::stdout().lock();
+    for line in stdin.lock().lines() {
+        let Ok(line) = line else { break };
+        let req: serde_json::Value = match serde_json::from_str(&line) {
+            Ok(v) => v,
+            Err(_) => {
+                let _ = writeln!(
+                    out,
+                    "{}",
+                    json!({"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error"}})
+                );
+                let _ = out.flush();
+                continue;
+            }
+        };
+        let Some(id) = req.get("id") else { continue };
+        let result = match req["method"].as_str().unwrap_or("") {
+            "initialize" => Ok(
+                json!({"protocolVersion":"2024-11-05", "capabilities":{"tools":{}}, "serverInfo":{"name":"flowmeet-platform", "version":"0.2.0"}}),
+            ),
+            "ping" => Ok(json!({})),
+            "tools/list" => Ok(json!({"tools":mcp_tools()})),
+            "tools/call" => {
+                let args = &req["params"]["arguments"];
+                match req["params"]["name"].as_str().unwrap_or("") {
+                    "flowmeet_context" => Ok(
+                        json!({"content":[{"type":"text","text":serde_json::to_string(&generate_agent_context()).unwrap()}]}),
+                    ),
+                    "flowmeet_check_permission" => {
+                        if ["role", "action", "resource"]
+                            .iter()
+                            .any(|k| args[k].as_str().filter(|v| !v.is_empty()).is_none())
+                        {
+                            Err((-32602, "role, action and resource are required"))
+                        } else {
+                            let mut builder = Subject::builder("agent:simulation")
+                                .role(args["role"].as_str().unwrap());
+                            if let Some(t) = args["subject_tenant"].as_str() {
+                                builder = builder.tenant(t);
+                            }
+                            let ctx = EvaluationContext {
+                                tenant_id: args["resource_tenant"].as_str().map(String::from),
+                                ..Default::default()
+                            };
+                            let evaluation = engine.evaluate(
+                                &builder.build(),
+                                args["action"].as_str().unwrap(),
+                                args["resource"].as_str().unwrap(),
+                                &ctx,
+                            );
+                            let value = json!({"allowed":evaluation.is_ok(), "reason":evaluation.err().map(|e| e.to_string()), "simulation_only":true});
+                            Ok(json!({"content":[{"type":"text","text":value.to_string()}]}))
+                        }
+                    }
+                    _ => Err((-32602, "Unknown tool")),
+                }
+            }
+            _ => Err((-32601, "Method not found")),
+        };
+        let response = match result {
+            Ok(value) => json!({"jsonrpc":"2.0","id":id,"result":value}),
+            Err((code, message)) => {
+                json!({"jsonrpc":"2.0","id":id,"error":{"code":code,"message":message}})
+            }
+        };
+        if writeln!(out, "{response}")
+            .and_then(|_| out.flush())
+            .is_err()
+        {
+            break;
         }
     }
 }
@@ -314,7 +374,7 @@ mod tests {
     fn test_generate_agent_context() {
         let ctx = generate_agent_context();
         assert_eq!(ctx.service, "flowmeet-crawler");
-        assert_eq!(ctx.cgroup_budget_mb, 45);
+        assert_eq!(ctx.cgroup_budget_mb, 128);
         assert!(ctx.roles.iter().any(|r| r.role == "operator"));
         assert!(ctx.endpoints.iter().any(|e| e.path == "/scrape"));
     }

@@ -1,444 +1,97 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
-import { createClient as createServerSupabaseClient } from "@/app/lib/supabase/server";
+import { NextResponse } from "next/server";
+import { randomUUID } from "node:crypto";
+import { checkRateLimit, clientIp } from "@/app/lib/cache";
+import { isAllowedDemoDomain, scrapeDomain } from "@/app/lib/scrape";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-async function resolveAuthenticatedUserId(
-    req: NextRequest,
-    serviceDb: SupabaseClient
-): Promise<string | null> {
-    const authHeader = req.headers.get("authorization");
-    if (authHeader?.startsWith("Bearer ")) {
-        const token = authHeader.slice(7).trim();
-        if (token) {
-            const { data, error } = await serviceDb.auth.getUser(token);
-            if (!error && data?.user?.id) {
-                return data.user.id;
-            }
-        }
+/** Read-only demonstration: no database writes, bookings, or email delivery. */
+export async function POST(req: Request) {
+    const started = performance.now();
+    const requestId = randomUUID();
+    if (!checkRateLimit(`pipeline:${clientIp(req)}`).allowed) {
+        return NextResponse.json({ success: false, error: "Rate limited" }, { status: 429 });
     }
-
-    try {
-        const sessionClient = await createServerSupabaseClient();
-        const { data, error } = await sessionClient.auth.getUser();
-        if (!error && data?.user?.id) {
-            return data.user.id;
-        }
-    } catch {
-        // Ignore cookie parsing errors on stateless requests
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body.email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email) || body.email.length > 254) {
+        return NextResponse.json({ success: false, error: "A valid work email is required" }, { status: 400 });
     }
-
-    return null;
-}
-
-export async function OPTIONS() {
-    return new NextResponse(null, {
-        status: 200,
-        headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization, x-flowmeet-secret",
-        },
-    });
-}
-
-export async function POST(req: NextRequest) {
-    const pipelineStart = Date.now();
-    try {
-        const body = await req.json();
-        const {
-            name = "Alex Rivera",
-            email = "vp_architecture@stripe.com",
-            company = "Stripe",
-            role = "VP Engineering",
-            region = "Americas",
-            employees = 3500,
-            query = "How do I configure SAML 2.0 single sign-on for Okta and verify x-flowmeet-secret webhooks?",
-            workspace_id: requestedWorkspaceId,
-        } = body;
-
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
-        const pilotWorkspaceId =
-            process.env.FOUNDER_WORKSPACE_ID || process.env.FLOWMEET_PILOT_WORKSPACE_ID || null;
-
-        let verifiedWorkspaceId: string | null = null;
-        let isPilotDemoRun = false;
-
-        if (requestedWorkspaceId !== undefined && requestedWorkspaceId !== null) {
-            if (typeof requestedWorkspaceId !== "string" || !UUID_REGEX.test(requestedWorkspaceId)) {
-                return NextResponse.json(
-                    { success: false, error: "Invalid workspace_id format" },
-                    { status: 400 }
-                );
-            }
-            if (!supabaseUrl || !supabaseServiceKey) {
-                return NextResponse.json(
-                    { success: false, error: "Database credentials not configured for workspace verification" },
-                    { status: 503 }
-                );
-            }
-            const serviceDb = createClient(supabaseUrl, supabaseServiceKey);
-            const userId = await resolveAuthenticatedUserId(req, serviceDb);
-            if (!userId) {
-                return NextResponse.json(
-                    { success: false, error: "Authentication required when specifying workspace_id" },
-                    { status: 401 }
-                );
-            }
-            const { data: membership, error: membershipErr } = await serviceDb
-                .from("workspace_users")
-                .select("workspace_id")
-                .eq("user_id", userId)
-                .eq("workspace_id", requestedWorkspaceId)
-                .maybeSingle();
-
-            if (membershipErr) {
-                return NextResponse.json(
-                    { success: false, error: "Failed to verify workspace membership" },
-                    { status: 503 }
-                );
-            }
-            if (!membership) {
-                return NextResponse.json(
-                    { success: false, error: "Forbidden: authenticated user does not belong to specified workspace_id" },
-                    { status: 403 }
-                );
-            }
-            verifiedWorkspaceId = requestedWorkspaceId;
-        } else {
-            verifiedWorkspaceId =
-                pilotWorkspaceId && UUID_REGEX.test(pilotWorkspaceId) ? pilotWorkspaceId : null;
-            isPilotDemoRun = true;
-        }
-
-        const domain = email.includes("@") ? email.split("@")[1] : `${company.toLowerCase().replace(/\s+/g, "")}.com`;
-        const origin = `http://127.0.0.1:${process.env.PORT || 3000}`;
-
-        // STEP 1 & 2 (Parallel Fan-Out): Rust Crawler (/api/scrape) + Python RAG Brain (/api/ai-brain)
-        const fanOutStart = Date.now();
-        const [scrapeRes, ragRes] = await Promise.all([
-            fetch(`${origin}/api/scrape`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ url: domain, extract_firmographics: true, max_tokens: 4096 }),
-            }).then((r) => r.json()),
-            fetch(`${origin}/api/ai-brain`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    query,
-                    customer_tier: employees >= 1000 ? "ENTERPRISE" : "COMMERCIAL",
-                    company,
-                }),
-            }).then((r) => r.json()),
-        ]);
-        const fanOutLatencyMs = Date.now() - fanOutStart;
-
-        const signals = scrapeRes?.data?.firmographic_signals || {};
-        const ragData = ragRes?.data || {};
-
-        // STEP 3: Go Sub-50µs Concierge Router (/api/route-lead)
-        const isEnterpriseInput = employees >= 1000 || role.toLowerCase().includes("vp") || role.toLowerCase().includes("chief") || role.toLowerCase().includes("cto");
-        const effectiveTier = isEnterpriseInput
-            ? signals.estimated_size_tier || "Enterprise Account (1,000+ Employees)"
-            : "Commercial Growth (50 - 199 Employees)";
-        const effectiveIntent = isEnterpriseInput ? (signals.intent_score ?? 92) : Math.min(signals.intent_score ?? 62, 62);
-
-        const effectiveStack = isEnterpriseInput
-            ? signals.detected_tech_stack || ["Next.js", "Kubernetes", "Rust Infra"]
-            : (signals.detected_tech_stack || ["Next.js", "React", "Rust Infra"]).slice(0, 3);
-
-        const routeRes = await fetch(`${origin}/api/route-lead`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                email,
-                company,
-                role,
-                region,
-                employees,
-                estimated_tier: effectiveTier,
-                detected_tech_stack: effectiveStack,
-                scraper_intent: effectiveIntent,
-            }),
-        }).then((r) => r.json());
-
-        const routeData = routeRes?.data || {};
-        const icpScore = routeData.final_icp_score ?? 92;
-        const dealArr = routeData.estimated_deal_arr_usd ?? 65000;
-        const qualificationTier = routeData.qualification_tier || "VIP_ENTERPRISE_INSTANT";
-        const ragConfidence = ragData.confidence_score ?? 96.0;
-
-        // STEP 4 & 5: Circuit Breaker & Grounded Synthesis
-        // Matches Python RAG engine's 50.0% autonomous deflection threshold + Go Concierge's $65k VIP tier
-        const isHighStakesDeal = dealArr >= 65000 || qualificationTier === "VIP_ENTERPRISE_INSTANT";
-        const isLowRagConfidence = ragConfidence < 50 || ragData.resolution_status === "HUMAN_ESCALATION_RECOMMENDED";
-        const requiresHitlApproval = isHighStakesDeal || isLowRagConfidence;
-
-        const hitlReasons: string[] = [];
-        if (isHighStakesDeal) {
-            hitlReasons.push(`HIGH_STAKES_DEAL ($${dealArr.toLocaleString()} ARR / ${qualificationTier})`);
-        }
-        if (isLowRagConfidence) {
-            hitlReasons.push(`LOW_RAG_CONFIDENCE (${ragConfidence}% < 50% threshold)`);
-        }
-
-        const assignedRep = routeData.assigned_member || {
-            name: "Yusuf Abubakar",
-            title: "Founder & Lead Systems Architect",
-            calendar_url: "https://cal.com/yusuf-abubakar/15min",
-        };
-
-        const techStack = (signals.detected_tech_stack || ["Next.js", "Kubernetes", "Docker"]).join(", ");
-
-        const synthesizedEmail =
-            `Hi ${name},\n\n` +
-            `Our Rust crawler analyzed ${company} (${domain}) and detected your ${techStack} stack.\n\n` +
-            `Regarding your technical inquiry ("${query}"):\n` +
-            `${ragData.direct_answer || ""}\n\n` +
-            `Verified Snippet:\n${ragData.recommended_code_snippet || ""}\n\n` +
-            `Because your team qualifies for ${qualificationTier} ($${dealArr.toLocaleString()} est. ARR), our Go Concierge locked a priority architecture slot with ${assignedRep.name} (${assignedRep.title}):\n` +
-            `-> ${assignedRep.calendar_url}`;
-
-        // STEP 6: Trigger Live n8n Container Webhook (or fallback to direct /api/ingest)
-        let resendDelivery: any = {
-            mode: requiresHitlApproval ? "FOUNDER_HITL_ESCALATION_ALERT" : "ZERO_TOUCH_AUTONOMOUS_DISPATCH",
-            resend_message_id: null,
-            accepted_by_resend: false,
-            delivery_status: "UNACCEPTED_SEND",
-            webhook_tracking: {
-                endpoint: "/api/webhooks/resend",
-                tracked_events: [
-                    "email.sent",
-                    "email.delivered",
-                    "email.delivery_delayed",
-                    "email.bounced",
-                    "email.complained",
-                ],
-            },
-            recipient: "ADMIN_ESCALATION_INBOX",
-            safe_mode_guard: "DEMO_SAFE_MODE_ACTIVE",
-        };
-        let ingestLogged = false;
-
+    const email = body.email.toLowerCase().trim();
+    const domain = email.split("@")[1];
+    const query = typeof body.query === "string" ? body.query.trim() : "How does lead routing work?";
+    if (!isAllowedDemoDomain(domain) || query.length < 3 || query.length > 500) {
+        return NextResponse.json({ success: false, error: "Use an allowed demo domain and a question of 3 to 500 characters" }, { status: 400 });
+    }
+    // The workflow calls this endpoint without ?via=n8n, preventing recursion.
+    if (new URL(req.url).searchParams.get("via") === "n8n") {
+        const url = process.env.N8N_INTERNAL_WEBHOOK_URL;
+        const token = process.env.FLOWMEET_N8N_TOKEN;
+        if (!url || !token) return NextResponse.json({ success: false, error: "n8n is not configured" }, { status: 503 });
         try {
-            const n8nWebhookUrl =
-                process.env.N8N_INTERNAL_WEBHOOK_URL ||
-                "http://flowmeet-n8n:5678/webhook/flowmeet-polyglot-triage";
-            const n8nRes = await fetch(n8nWebhookUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, email, company, role, region, employees, query }),
+            const response = await fetch(url, {
+                method: "POST", headers: { "Content-Type": "application/json", "x-flowmeet-workflow-token": token },
+                body: JSON.stringify({ ...body, email, query }), signal: AbortSignal.timeout(45000),
             });
-            if (n8nRes.ok) {
-                const n8nData = await n8nRes.json();
-                ingestLogged = true;
-                if (n8nData?.resend_delivery) {
-                    const msgId = n8nData.resend_delivery.resend_message_id || null;
-
-                    if (msgId) {
-                        if (!verifiedWorkspaceId || !supabaseUrl || !supabaseServiceKey) {
-                            return NextResponse.json(
-                                {
-                                    success: false,
-                                    retryable: true,
-                                    error: "Missing verified workspace or database configuration to bind outbound Resend message ID",
-                                },
-                                { status: 503 }
-                            );
-                        }
-
-                        const db = createClient(supabaseUrl, supabaseServiceKey);
-                        const { error: bindingError } = await db.from("integration_events").upsert({
-                            id: `resend-msg:${msgId}`,
-                            workspace_id: verifiedWorkspaceId,
-                            type: "email.dispatched",
-                            status: "completed",
-                            payload: {
-                                email_id: msgId,
-                                workspace_id: verifiedWorkspaceId,
-                                is_pilot_demo: isPilotDemoRun,
-                                company,
-                                dispatched_at: new Date().toISOString(),
-                            },
-                        });
-
-                        if (bindingError) {
-                            return NextResponse.json(
-                                {
-                                    success: false,
-                                    retryable: true,
-                                    error: "Failed to persist outbound Resend message-to-workspace binding",
-                                },
-                                { status: 503 }
-                            );
-                        }
-                    }
-
-                    resendDelivery = {
-                        ...n8nData.resend_delivery,
-                        resend_message_id: msgId,
-                        accepted_by_resend: Boolean(msgId),
-                        delivery_status: msgId ? "ACCEPTED_BY_RESEND" : "UNACCEPTED_SEND",
-                        workspace_binding: msgId ? "VERIFIED_SUPABASE_BOUND" : "NO_MESSAGE_ID",
-                        webhook_tracking: n8nData.resend_delivery.webhook_tracking || {
-                            endpoint: "/api/webhooks/resend",
-                            tracked_events: [
-                                "email.sent",
-                                "email.delivered",
-                                "email.delivery_delayed",
-                                "email.bounced",
-                                "email.complained",
-                            ],
-                        },
-                    };
-                }
-            }
-        } catch {
-            // Fallback to direct /api/ingest if running locally without flowmeet-n8n container
-            try {
-                const ingestSecret = process.env.FLOWMEET_INGEST_SECRET;
-                if (ingestSecret) {
-                    const ingestRes = await fetch(`${origin}/api/ingest`, {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "x-flowmeet-secret": ingestSecret,
-                        },
-                        body: JSON.stringify({
-                            name,
-                            email,
-                            company,
-                            role,
-                            region,
-                            source: "n8n Polyglot Orchestrator",
-                        }),
-                    });
-                    ingestLogged = ingestRes.ok;
-                }
-            } catch {
-                ingestLogged = false;
-            }
+            if (!response.ok) throw new Error(`n8n returned HTTP ${response.status}`);
+            const result = await response.json();
+            if (result.success !== true) throw new Error(result.error || "n8n did not return a completed execution");
+            return NextResponse.json({ ...result, orchestrator: "n8n", n8n_round_trip_ms: Math.round(performance.now() - started) });
+        } catch (error) {
+            return NextResponse.json({ success: false, error: error instanceof Error ? error.message : "n8n unavailable", request_id: requestId }, { status: 502 });
         }
-
-        const totalLatencyMs = Date.now() - pipelineStart;
-
+    }
+    const traceparent = `00-${requestId.replaceAll("-", "")}-${randomUUID().replaceAll("-", "").slice(0, 16)}-01`;
+    const headers = { "Content-Type": "application/json", traceparent };
+    const trace: { name: string; status: string; duration_ms: number }[] = [];
+    async function measured<T>(name: string, operation: () => Promise<T>): Promise<T> {
+        const t = performance.now();
+        try {
+            const value = await operation();
+            trace.push({ name, status: "SUCCESS", duration_ms: Math.round((performance.now() - t) * 100) / 100 });
+            return value;
+        } catch (error) {
+            trace.push({ name, status: "FAILED", duration_ms: Math.round((performance.now() - t) * 100) / 100 });
+            throw error;
+        }
+    }
+    async function post(url: string, data: unknown) {
+        const response = await fetch(url, { method: "POST", headers, body: JSON.stringify(data), signal: AbortSignal.timeout(5000) });
+        if (!response.ok) throw new Error(`Dependency returned HTTP ${response.status}`);
+        return response.json();
+    }
+    try {
+        const results = await Promise.allSettled([
+            measured("Company website", async () => {
+                const outcome = await scrapeDomain(domain, traceparent);
+                if (!outcome.result) throw new Error("Company website could not be read");
+                return outcome.result;
+            }),
+            measured("Documentation search", () => post(`${process.env.PYTHON_AI_BRAIN_URL || "http://127.0.0.1:8083"}/ai/deflect`, { query })),
+        ]);
+        const failed = results.find((r) => r.status === "rejected");
+        if (failed?.status === "rejected") throw failed.reason;
+        const site = (results[0] as PromiseFulfilledResult<Awaited<ReturnType<typeof scrapeDomain>>["result"]>).value!;
+        const docs = (results[1] as PromiseFulfilledResult<Record<string, unknown>>).value;
+        const route = await measured("Lead routing", () => post(`${process.env.GOLANG_CONCIERGE_URL || "http://127.0.0.1:8082"}/route`, {
+            email, company: domain, role: typeof body.role === "string" ? body.role.slice(0, 120) : "",
+            region: typeof body.region === "string" ? body.region.slice(0, 60) : "",
+            employees: Number.isFinite(body.employees) ? Math.max(0, Math.min(10000000, Math.floor(body.employees))) : 0,
+            estimated_tier: site.sizeTier, detected_tech_stack: site.techStack, scraper_intent: site.intentScore,
+        }));
+        const reasons: string[] = [];
+        if (route.qualification_tier === "VIP_ENTERPRISE") reasons.push("Enterprise lead: review recommended");
+        if (docs.resolution_status !== "AUTONOMOUS_DEFLECTION_SUCCESS") reasons.push("Documentation match needs human review");
         return NextResponse.json({
-            success: true,
-            workflow_name: "FlowMeet: Polyglot Revenue & Technical Triage Orchestrator (12-Node Live n8n Graph)",
-            total_orchestration_ms: totalLatencyMs,
-            parallel_fanout_ms: fanOutLatencyMs,
-            resend_delivery: resendDelivery,
-            node_execution_trace: [
-                {
-                    node_id: "1",
-                    name: "1. Inbound Lead & Tech Inquiry Webhook",
-                    status: "SUCCESS",
-                    latency_ms: 1,
-                    output_summary: `Ingested ${email} (${role} @ ${company})`,
-                },
-                {
-                    node_id: "2a",
-                    name: "2a. Rust Axum Crawler (/api/scrape)",
-                    status: "SUCCESS",
-                    engine: scrapeRes?.engine,
-                    latency_ms: scrapeRes?.latency_ms ?? 115,
-                    output_summary: `Extracted ${(signals.detected_tech_stack || []).length} tech signals (${techStack})`,
-                },
-                {
-                    node_id: "2b",
-                    name: "2b. Python FastAPI RAG Brain (/api/ai-brain)",
-                    status: "SUCCESS",
-                    engine: ragRes?.engine,
-                    latency_ms: ragData.execution_time_ms ?? 0.87,
-                    output_summary: `Confidence ${ragConfidence}% • Citation: ${ragData.citations?.[0]?.title || "Verified Docs"}`,
-                },
-                {
-                    node_id: "3",
-                    name: "3. Go Sub-50µs Concierge (/api/route-lead)",
-                    status: "SUCCESS",
-                    engine: routeRes?.engine,
-                    latency_us: routeData.execution_time_microseconds ?? 22,
-                    output_summary: `ICP Score: ${icpScore}/100 • Tier: ${qualificationTier} ($${dealArr.toLocaleString()} ARR)`,
-                },
-                {
-                    node_id: "4-5",
-                    name: "4-5. Merge Telemetry & Grounded AI Synthesis",
-                    status: "SUCCESS",
-                    latency_ms: 2,
-                    output_summary: `Synthesized HTML + Safe-Mode Guard (${resendDelivery.safe_mode_guard})`,
-                },
-                {
-                    node_id: "6",
-                    name: "6. Supabase Audit Log (/api/ingest)",
-                    status: ingestLogged ? "SUCCESS" : "VERIFIED_BYPASS",
-                    latency_ms: 18,
-                    output_summary: ingestLogged
-                        ? "Persisted enriched Lead record to Supabase via n8n"
-                        : "Audit payload validated (x-flowmeet-secret)",
-                },
-                {
-                    node_id: "7",
-                    name: "7. Circuit Breaker (ARR >= $65k OR RAG < 50%)",
-                    status: requiresHitlApproval ? "ESC_FOUNDER_HITL" : "ZERO_TOUCH_AUTONOMOUS_DISPATCH",
-                    latency_ms: 1,
-                    output_summary: requiresHitlApproval
-                        ? `Routed to 8a: Founder HITL Escalation (${hitlReasons.join(", ")})`
-                        : `Routed to 8b: Zero-Touch Autonomous Dispatch (ARR < $65k & RAG >= 50%)`,
-                },
-                {
-                    node_id: "8-9",
-                    name: requiresHitlApproval
-                        ? "8a-9a. Resend API: Founder HITL Alert & Webhook Return"
-                        : "8b-9b. Resend API: Safe-Mode Autonomous Dispatch & Return",
-                    status: resendDelivery.accepted_by_resend ? "ACCEPTED_BY_RESEND" : "UNACCEPTED_SEND",
-                    latency_ms: 140,
-                    output_summary: resendDelivery.accepted_by_resend
-                        ? `Accepted by Resend (ID: ${resendDelivery.resend_message_id} -> ${resendDelivery.recipient} • Webhook: /api/webhooks/resend)`
-                        : `Unaccepted Send (No Resend ID returned) -> ${resendDelivery.recipient}`,
-                },
-            ],
-            payload: {
-                lead: { name, email, company, role, region, employees },
-                scoring_and_routing: {
-                    final_icp_score: icpScore,
-                    qualification_tier: qualificationTier,
-                    estimated_deal_arr_usd: dealArr,
-                    assigned_member: assignedRep,
-                },
-                rag_deflection: {
-                    confidence_score: ragConfidence,
-                    resolution_status: ragData.resolution_status || "AUTONOMOUS_DEFLECTION_SUCCESS",
-                    direct_answer: ragData.direct_answer,
-                    recommended_code_snippet: ragData.recommended_code_snippet,
-                    citations: ragData.citations || [],
-                },
-                circuit_breaker: {
-                    requires_hitl_approval: requiresHitlApproval,
-                    execution_mode: requiresHitlApproval
-                        ? "FOUNDER_HITL_ESCALATION"
-                        : "ZERO_TOUCH_AUTONOMOUS_DISPATCH",
-                    reasons: hitlReasons.length
-                        ? hitlReasons
-                        : ["ALL_GUARDRAILS_PASSED (ARR < $65k & RAG Confidence >= 50%)"],
-                },
-                telemetry: {
-                    rust_crawler_latency_ms: scrapeRes?.latency_ms ?? 115,
-                    go_concierge_exec_us: routeData.execution_time_microseconds ?? 22,
-                    python_rag_exec_ms: ragData.execution_time_ms ?? 0.87,
-                    detected_tech_stack: signals.detected_tech_stack || [],
-                },
-                synthesized_outreach_draft: synthesizedEmail,
-            },
-        });
-    } catch (err: any) {
-        return NextResponse.json(
-            { success: false, error: err.message || "Failed to execute n8n orchestration pipeline" },
-            { status: 500 }
-        );
+            success: true, request_id: requestId, orchestrator: "direct", mode: "PREVIEW_ONLY",
+            total_orchestration_ms: Math.round(performance.now() - started), node_execution_trace: trace,
+            payload: { lead: { email, domain }, site, scoring_and_routing: route, rag_deflection: docs,
+                circuit_breaker: { requires_hitl_approval: reasons.length > 0, reasons },
+                booking_available: Boolean(process.env.FLOWMEET_BOOKING_URL) && route.qualification_tier !== "SELF_SERVE" },
+            side_effects: { email_sent: false, lead_persisted: false, meeting_booked: false },
+            note: "Homepage keywords are rough signals. Documentation scores are relevance scores, not probabilities. Representatives may be sample entries.",
+        }, { headers: { "Cache-Control": "no-store", "x-request-id": requestId } });
+    } catch (error) {
+        return NextResponse.json({ success: false, request_id: requestId, error: error instanceof Error ? error.message : "Pipeline failed", node_execution_trace: trace }, { status: 502 });
     }
 }

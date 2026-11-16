@@ -1,3 +1,4 @@
+import { serviceHeaders } from "./service-auth";
 // Fetching a company's homepage and turning it into signals.
 //
 // Order: the built-in Rust crawler first. Firecrawl is only called when the
@@ -48,9 +49,9 @@ async function postJson(url: string, body: unknown, timeoutMs: number, headers: 
     });
 }
 
-async function viaCrawler(domain: string): Promise<ScrapeResult> {
+async function viaCrawler(domain: string, traceparent?: string): Promise<ScrapeResult> {
     const started = Date.now();
-    const res = await postJson(`${crawlerUrl()}/scrape`, { url: domain }, 12000);
+    const res = await postJson(`${crawlerUrl()}/scrape`, { url: domain }, 12000, { ...serviceHeaders(), ...(traceparent ? { traceparent } : {}) });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.details || data.error || `crawler returned HTTP ${res.status}`);
     const s = data.firmographic_signals || {};
@@ -83,7 +84,7 @@ async function viaFirecrawl(domain: string): Promise<ScrapeResult> {
     if (!markdown) throw new Error("Firecrawl returned no content");
 
     // Run the same keyword detector the crawler uses so both paths agree.
-    const analysis = await postJson(`${crawlerUrl()}/analyze`, { url: domain, markdown }, 5000)
+    const analysis = await postJson(`${crawlerUrl()}/analyze`, { url: domain, markdown }, 5000, serviceHeaders())
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null);
     const s = analysis?.firmographic_signals || {};
@@ -101,12 +102,12 @@ async function viaFirecrawl(domain: string): Promise<ScrapeResult> {
     };
 }
 
-export async function scrapeDomain(domain: string): Promise<ScrapeOutcome> {
+export async function scrapeDomain(domain: string, traceparent?: string): Promise<ScrapeOutcome> {
     const attempts: string[] = [];
     let crawled: ScrapeResult | null = null;
 
     try {
-        crawled = await viaCrawler(domain);
+        crawled = await viaCrawler(domain, traceparent);
         attempts.push(`crawler read ${crawled.markdown.length.toLocaleString()} characters in ${crawled.elapsedMs} ms`);
         if (crawled.markdown.length >= THIN_PAGE_CHARS) return { result: crawled, attempts };
         attempts.push("page returned very little text (it may render with JavaScript)");

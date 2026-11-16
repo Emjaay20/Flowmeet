@@ -416,6 +416,7 @@ export async function POST(req: NextRequest) {
     // Persist to Supabase before marking event processed; return 503 on failure so Resend retries
     const { error: insertError } = await db.from("integration_events").insert({
         id: svixId!,
+        results: {},
         workspace_id: workspaceId,
         type: eventType,
         status: "completed",

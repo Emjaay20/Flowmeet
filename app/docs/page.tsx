@@ -1,695 +1,85 @@
 "use client";
 
 import { useState } from "react";
-import Header from "../components/Header";
-import Footer from "../components/Footer";
 import Link from "next/link";
-import { 
-    Terminal, 
-    Database, 
-    Calendar, 
-    Zap, 
-    GitBranch, 
-    Layers, 
-    Check, 
-    Copy, 
-    ArrowRight, 
-    RefreshCw, 
-    Building2, 
-    UserCheck,
-    Cpu,
-    ExternalLink,
-    Sparkles
-} from "lucide-react";
+import { ArrowLeft, ArrowUpRight, CheckCircle2, Loader2, ShieldCheck, Workflow, Terminal, Activity } from "lucide-react";
+
+interface Result {
+    success: boolean; error?: string; request_id?: string; mode?: string; orchestrator?: string;
+    n8n_execution_id?: string; total_orchestration_ms?: number;
+    node_execution_trace?: { name: string; status: string; duration_ms: number }[];
+    payload?: { scoring_and_routing: { final_icp_score: number; qualification_tier: string; sample_roster: boolean; assigned_member: { name: string } }; rag_deflection: { direct_answer: string; confidence_score: number }; circuit_breaker: { requires_hitl_approval: boolean; reasons: string[] }; site: { techStack: string[]; source: string } };
+}
 
 export default function DocsPage() {
-    const [copiedIndex, setCopiedIndex] = useState<string | null>(null);
-    const [sfLoading, setSfLoading] = useState(false);
-    const [sfResult, setSfResult] = useState<any>(null);
-    const [selectedCompany, setSelectedCompany] = useState<"stripe" | "linear" | "acme">("stripe");
-
-    const [n8nPreset, setN8nPreset] = useState<"enterprise_hitl" | "commercial_auto" | "low_rag_hitl">("enterprise_hitl");
-    const [n8nLoading, setN8nLoading] = useState(false);
-    const [n8nResult, setN8nResult] = useState<any>(null);
-
-    const handleCopy = (text: string, id: string) => {
-        navigator.clipboard.writeText(text);
-        setCopiedIndex(id);
-        setTimeout(() => setCopiedIndex(null), 2000);
-    };
-
-    const handleTestN8nOrchestrator = async () => {
-        setN8nLoading(true);
+    const [mode, setMode] = useState("direct");
+    const [email, setEmail] = useState("demo@stripe.com");
+    const [query, setQuery] = useState("How does lead routing work?");
+    const [loading, setLoading] = useState(false);
+    const [result, setResult] = useState<Result | null>(null);
+    async function run() {
+        setLoading(true); setResult(null);
         try {
-            const payloads = {
-                enterprise_hitl: {
-                    name: "Alex Rivera",
-                    email: "vp_architecture@stripe.com",
-                    company: "Stripe",
-                    role: "VP Engineering",
-                    region: "Americas",
-                    employees: 3500,
-                    query: "How do I configure SAML 2.0 single sign-on for Okta?"
-                },
-                commercial_auto: {
-                    name: "Devon Lindqvist",
-                    email: "eng@linear.app",
-                    company: "Linear",
-                    role: "Software Engineer",
-                    region: "Americas",
-                    employees: 120,
-                    query: "What are the Nginx API rate limits and burst buffers?"
-                },
-                low_rag_hitl: {
-                    name: "Devon Lindqvist",
-                    email: "eng@linear.app",
-                    company: "Linear",
-                    role: "Software Engineer",
-                    region: "Americas",
-                    employees: 120,
-                    query: "Do you support mainframes running COBOL over AS/400 token rings?"
-                }
-            };
-            const res = await fetch("/api/n8n-orchestrate", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payloads[n8nPreset])
+            const response = await fetch(`/api/n8n-orchestrate${mode === "n8n" ? "?via=n8n" : ""}`, {
+                method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, query }),
             });
-            const data = await res.json();
-            setN8nResult(data);
-        } catch (err: any) {
-            console.error("n8n orchestrator error:", err);
-        } finally {
-            setN8nLoading(false);
-        }
-    };
-
-    const handleTestSalesforce = async () => {
-        setSfLoading(true);
-        try {
-            const domainMap = {
-                stripe: { email: "vp@stripe.com", company: "Stripe", domain: "stripe.com", icpScore: 99 },
-                linear: { email: "eng@linear.app", company: "Linear", domain: "linear.app", icpScore: 94 },
-                acme: { email: "alex@acmestore.io", company: "Acme Store", domain: "acmestore.io", icpScore: 65 }
-            };
-            const target = domainMap[selectedCompany];
-
-            const res = await fetch("/api/salesforce/sync", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(target)
-            });
-            const data = await res.json();
-            setSfResult(data);
-        } catch (err: any) {
-            console.error("Salesforce sync error:", err);
-        } finally {
-            setSfLoading(false);
-        }
-    };
-
-    return (
-        <div className="min-h-screen bg-[#fcfcf9] text-zinc-900 font-sans antialiased selection:bg-[#c8f944] selection:text-zinc-950">
-            <Header />
-
-            <main className="pt-28 pb-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-                
-                {/* Header Title */}
-                <div className="max-w-4xl mb-16">
-                    <div className="text-xs font-mono font-semibold tracking-wider text-zinc-500 uppercase mb-3">
-                        Architecture &amp; Integration Specifications
-                    </div>
-                    <h1 className="font-editorial text-4xl sm:text-6xl font-normal text-zinc-950 tracking-tight leading-[1.1] mb-6">
-                        Architectural Decisions &amp; <br />
-                        <span className="italic font-serif text-zinc-800">Salesforce CRM Integration.</span>
-                    </h1>
-                    <p className="text-zinc-600 text-base sm:text-lg leading-relaxed font-sans">
-                        Comprehensive documentation of Flowmeet&apos;s inbound demand conversion pipeline, RFC 5545 calendar handoffs, and enterprise CRM sync architecture modeled after Chili Piper Form Concierge &amp; Distro.
-                    </p>
+            setResult(await response.json());
+        } catch { setResult({ success: false, error: "Could not reach the application. Please try again." }); }
+        finally { setLoading(false); }
+    }
+    return <main className="min-h-screen bg-[#f7f8fa] text-zinc-950">
+        <nav className="max-w-6xl mx-auto px-6 py-7 flex justify-between items-center border-b border-zinc-200">
+            <Link href="/" className="font-bold text-xl tracking-tight">Flowmeet<span className="text-emerald-600">.</span></Link>
+            <Link href="/guide" className="flex items-center gap-2 text-sm text-zinc-600">How to use FlowMeet →</Link>
+        </nav>
+        <div className="max-w-6xl mx-auto px-6 py-14 md:py-20">
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-800 px-3 py-1 text-xs font-medium"><Activity size={13}/> Platform walkthrough</div>
+            <h1 className="text-4xl md:text-6xl tracking-tight font-semibold mt-6 max-w-3xl leading-[1.08]">From a company email<br/>to an informed next step.</h1>
+            <p className="text-lg text-zinc-600 max-w-2xl mt-6 leading-relaxed">See the website research, routing rules, and documentation search working together. Every result comes from a service response. Failures stay visible.</p>
+            <div className="grid md:grid-cols-3 gap-4 mt-10 mb-14">
+                {[{icon: ShieldCheck, title:"A clear security boundary", text:"The Rust crawler requires a service credential and validates network destinations, including redirects."}, {icon: Activity,title:"Measured, not assumed",text:"Results show actual service timings, website signals, and a request identifier."}, {icon: Workflow,title:"An inspectable workflow",text:"Choose a direct run or an authenticated n8n workflow. Both use the same preview pipeline."}].map(({icon:Icon,title,text})=><div key={title} className="bg-white border border-zinc-200 rounded-2xl p-6"><Icon size={22} className="text-emerald-700 mb-5"/><h2 className="font-semibold mb-2">{title}</h2><p className="text-sm text-zinc-600 leading-relaxed">{text}</p></div>)}
+            </div>
+            <section id="pipeline" className="grid lg:grid-cols-[0.85fr_1.15fr] rounded-3xl border border-zinc-200 overflow-hidden bg-white shadow-sm">
+                <div className="p-7 md:p-10 border-b lg:border-b-0 lg:border-r border-zinc-200">
+                    <span id="n8n-tester" className="text-xs uppercase tracking-widest text-emerald-700 font-semibold">Try the pipeline</span>
+                    <h2 className="text-2xl font-semibold mt-3 mb-3">One run. Three real services.</h2>
+                    <p className="text-sm text-zinc-600 leading-relaxed mb-7">This is a read-only preview. No emails are sent, no leads are stored, and no calendar slots are reserved.</p>
+                    <form onSubmit={e=>{e.preventDefault(); void run();}} className="space-y-5">
+                        <label className="block text-sm font-medium">Company email<input required type="email" value={email} onChange={e=>setEmail(e.target.value)} className="block w-full border border-zinc-300 rounded-xl px-4 py-3 mt-2 font-normal"/><span className="text-xs text-zinc-500 font-normal mt-2 block">Default demo sites: stripe.com, github.com, yusufsaka.dev</span></label>
+                        <label className="block text-sm font-medium">Documentation question<textarea required minLength={3} maxLength={500} value={query} onChange={e=>setQuery(e.target.value)} className="block w-full border border-zinc-300 rounded-xl px-4 py-3 mt-2 h-24 font-normal"/></label>
+                        <label className="block text-sm font-medium">Run through<select value={mode} onChange={e=>setMode(e.target.value)} className="block w-full border border-zinc-300 rounded-xl px-4 py-3 mt-2 font-normal"><option value="direct">Direct service pipeline</option><option value="n8n">n8n workflow</option></select></label>
+                        <button disabled={loading} className="flex justify-center items-center gap-2 w-full rounded-xl bg-zinc-950 text-white py-3 font-medium disabled:opacity-50">{loading?<><Loader2 className="animate-spin" size={17}/> Running services…</>:<>Run preview <ArrowUpRight size={17}/></>}</button>
+                    </form>
                 </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-                    
-                    {/* Left Sticky Table of Contents */}
-                    <div className="hidden lg:block lg:col-span-3 sticky top-24 space-y-4 text-xs font-mono">
-                        <div className="p-4 rounded-2xl bg-white border border-zinc-200/90 shadow-xs space-y-2.5">
-                            <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider block">
-                                ARCHITECTURAL DECISIONS (ADR)
-                            </span>
-                            <a href="#adr-001" className="block text-zinc-600 hover:text-zinc-950 hover:underline">
-                                01. Calendar Mechanics (RFC 5545)
-                            </a>
-                            <a href="#adr-002" className="block text-zinc-600 hover:text-zinc-950 hover:underline">
-                                02. Salesforce CRM &amp; L2A Sync
-                            </a>
-                            <a href="#adr-003" className="block text-zinc-600 hover:text-zinc-950 hover:underline">
-                                03. Architecture vs Chili Piper
-                            </a>
-                            <a href="#adr-004" className="block text-zinc-600 hover:text-zinc-950 hover:underline">
-                                04. Firecrawl &amp; 24h Caching
-                            </a>
-                            <a href="#adr-005" className="block text-zinc-600 hover:text-zinc-950 hover:underline">
-                                05. Clay, HubSpot &amp; GA4 Stack
-                            </a>
-                            <a href="#adr-006" className="block text-zinc-600 hover:text-zinc-950 hover:underline">
-                                06. n8n Polyglot Orchestrator
-                            </a>
-                            <a href="#n8n-tester" className="block text-emerald-700 font-bold hover:underline">
-                                → Live n8n Orchestrator Tester
-                            </a>
-                            <a href="#live-tester" className="block text-emerald-700 font-bold hover:underline">
-                                → Live Salesforce REST Tester
-                            </a>
-                        </div>
-                    </div>
-
-                    {/* Right Main Content */}
-                    <div className="lg:col-span-9 space-y-16">
-
-                        {/* ADR 001: Calendar Mechanics */}
-                        <section id="adr-001" className="bg-white rounded-3xl border border-zinc-200/90 shadow-sm p-6 sm:p-10 space-y-6">
-                            <div className="flex items-center gap-2 text-xs font-mono text-zinc-500 pb-2 border-b border-zinc-100">
-                                <Calendar className="w-4 h-4 text-zinc-900" />
-                                <span className="font-bold text-zinc-950">ADR-001</span> • CORE ENGINE
-                            </div>
-                            <h2 className="font-editorial text-3xl sm:text-4xl font-normal text-zinc-950 tracking-tight">
-                                How Meetings Are Created: RFC 5545 iCalendar Transport
-                            </h2>
-                            <p className="text-sm text-zinc-600 leading-relaxed font-sans">
-                                When a prospect selects a time slot in Flowmeet, the system bypasses external calendar redirects and generates an RFC 5545 compliant <code className="text-xs font-mono bg-zinc-100 px-1.5 py-0.5 rounded text-zinc-900">.ics</code> MIME object sent directly via Resend email transport.
-                            </p>
-
-                            <div className="bg-zinc-950 text-white rounded-2xl p-4 font-mono text-xs overflow-x-auto border border-zinc-800">
-                                <div className="text-[10px] text-zinc-400 mb-2 pb-1 border-b border-zinc-800 flex justify-between">
-                                    <span>RFC 5545 VEVENT PAYLOAD SPECIFICATION</span>
-                                    <span>METHOD: REQUEST</span>
-                                </div>
-                                <pre className="text-[11px] text-zinc-300 leading-relaxed">
-{`BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//Flowmeet Inc//Inbound Discovery//EN
-CALSCALE:GREGORIAN
-METHOD:REQUEST
-BEGIN:VEVENT
-UID:flowmeet-1793551076@yusufsaka.dev
-DTSTAMP:20261101T170000Z
-DTSTART:20261102T150000Z
-DTEND:20261102T153000Z
-SUMMARY:Flowmeet Discovery • Stripe & Yusuf Abubakar
-LOCATION:https://meet.google.com/flw-meet-live
-ORGANIZER;CN="Yusuf Abubakar":mailto:yusuf@yusufsaka.dev
-ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION:mailto:vp@stripe.com
-STATUS:CONFIRMED
-END:VEVENT
-END:VCALENDAR`}
-                                </pre>
-                            </div>
-
-                            <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200 text-xs text-zinc-700 leading-relaxed space-y-1">
-                                <strong className="font-semibold text-zinc-950">Why This Eliminates Dropoff:</strong>
-                                <p>
-                                    When Gmail, Apple Mail, or Outlook receives an email with <code className="text-zinc-900 font-mono">METHOD:REQUEST</code>, the email client renders interactive <em>&ldquo;Yes / Maybe / No&rdquo;</em> buttons directly at the top of the message and automatically places the meeting on both parties&apos; calendars without requiring any manual clicks or calendar logins.
-                                </p>
-                            </div>
-                        </section>
-
-                        {/* ADR 002: Salesforce CRM & Data Model */}
-                        <section id="adr-002" className="bg-white rounded-3xl border border-zinc-200/90 shadow-sm p-6 sm:p-10 space-y-6">
-                            <div className="flex items-center gap-2 text-xs font-mono text-zinc-500 pb-2 border-b border-zinc-100">
-                                <Database className="w-4 h-4 text-zinc-900" />
-                                <span className="font-bold text-zinc-950">ADR-002</span> • CRM DATA MODEL
-                            </div>
-                            <h2 className="font-editorial text-3xl sm:text-4xl font-normal text-zinc-950 tracking-tight">
-                                Salesforce CRM Architecture &amp; Lead-to-Account (L2A) Matching
-                            </h2>
-                            <p className="text-sm text-zinc-600 leading-relaxed font-sans">
-                                Salesforce is the single source of truth for enterprise RevOps teams. Flowmeet implements standard and custom object synchronization, adhering to Chili Piper&apos;s data model specifications:
-                            </p>
-
-                            {/* Object Mapping Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans">
-                                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200">
-                                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-zinc-200">
-                                        <span className="font-mono font-bold text-zinc-900">1. Account Object (001...)</span>
-                                        <span className="font-mono text-[10px] text-zinc-500">Target Match</span>
-                                    </div>
-                                    <p className="text-zinc-600 mb-2">
-                                        Queries domain via SOQL (<code className="font-mono text-zinc-800">Website LIKE &apos;%domain%&apos;</code>). If an existing enterprise account exists, Flowmeet extracts the <code className="font-mono text-zinc-800">Account.OwnerId</code> to preserve account ownership.
-                                    </p>
-                                </div>
-
-                                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200">
-                                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-zinc-200">
-                                        <span className="font-mono font-bold text-zinc-900">2. Lead Object (00Q...)</span>
-                                        <span className="font-mono text-[10px] text-zinc-500">New Prospect</span>
-                                    </div>
-                                    <p className="text-zinc-600 mb-2">
-                                        If no Account matches, a new Lead is created with <code className="font-mono text-zinc-800">Rating: &apos;Hot&apos;</code>, <code className="font-mono text-zinc-800">LeadSource: &apos;Flowmeet Concierge&apos;</code>, and custom fields (<code className="font-mono text-zinc-800">ICP_Score__c</code>).
-                                    </p>
-                                </div>
-
-                                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200">
-                                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-zinc-200">
-                                        <span className="font-mono font-bold text-zinc-900">3. Event Object (00U...)</span>
-                                        <span className="font-mono text-[10px] text-zinc-500">Calendar Activity</span>
-                                    </div>
-                                    <p className="text-zinc-600 mb-2">
-                                        Immediately logs the confirmed meeting under <code className="font-mono text-zinc-800">WhoId: Lead.Id</code> and <code className="font-mono text-zinc-800">WhatId: Account.Id</code> with Google Meet URL and assigned Sales Rep.
-                                    </p>
-                                </div>
-
-                                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200">
-                                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-zinc-200">
-                                        <span className="font-mono font-bold text-zinc-900">4. Opportunity (006...)</span>
-                                        <span className="font-mono text-[10px] text-zinc-500">Pipeline Tracking</span>
-                                    </div>
-                                    <p className="text-zinc-600 mb-2">
-                                        Pre-populates deal stage to <em>&ldquo;Stage 1 - Discovery Scheduled&rdquo;</em> with estimated ARR computed from detected employee tier.
-                                    </p>
-                                </div>
-                            </div>
-                        </section>
-
-                        {/* ADR 003: Architecture Comparison vs Chili Piper */}
-                        <section id="adr-003" className="bg-white rounded-3xl border border-zinc-200/90 shadow-sm p-6 sm:p-10 space-y-6">
-                            <div className="flex items-center gap-2 text-xs font-mono text-zinc-500 pb-2 border-b border-zinc-100">
-                                <Zap className="w-4 h-4 text-zinc-900" />
-                                <span className="font-bold text-zinc-950">ADR-003</span> • ARCHITECTURAL COMPARISON: CHILI PIPER ALTERNATIVE
-                            </div>
-                            <h2 className="font-editorial text-3xl sm:text-4xl font-normal text-zinc-950 tracking-tight">
-                                Self-Hosted Alternative to Chili Piper
-                            </h2>
-                            <p className="text-sm text-zinc-600 leading-relaxed font-sans">
-                                Flowmeet provides an open, self-hostable alternative to commercial inbound conversion software. Here is how Flowmeet&apos;s modular microservices map to the capabilities of Chili Piper:
-                            </p>
-
-                            <div className="space-y-4 text-xs font-sans">
-                                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                    <div>
-                                        <strong className="text-zinc-950 block text-sm">Form Concierge Equivalent</strong>
-                                        <p className="text-zinc-600">Interception of website form submissions, live domain qualification, and instant calendar presentation without page refresh.</p>
-                                    </div>
-                                    <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-mono text-[10px] font-bold whitespace-nowrap">
-                                        Flowmeet Rust Scraper + SSE Stream
-                                    </span>
-                                </div>
-
-                                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                    <div>
-                                        <strong className="text-zinc-950 block text-sm">Distro Routing Equivalent</strong>
-                                        <p className="text-zinc-600">Lead qualification, territory scoring, and deterministic rep assignment in microseconds based on rules and region.</p>
-                                    </div>
-                                    <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-mono text-[10px] font-bold whitespace-nowrap">
-                                        Flowmeet Go Concierge (:8082)
-                                    </span>
-                                </div>
-
-                                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                    <div>
-                                        <strong className="text-zinc-950 block text-sm">Instant Booker / Handoff Equivalent</strong>
-                                        <p className="text-zinc-600">Cal.com API integration, in-session slot picker, and RFC 5545 calendar invitation dispatch via Resend.</p>
-                                    </div>
-                                    <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-mono text-[10px] font-bold whitespace-nowrap">
-                                        Flowmeet /api/book-slot + Resend
-                                    </span>
-                                </div>
-                            </div>
-                        </section>
-
-                        {/* ADR 004: In-House Rust Scraper & Firecrawl Integration */}
-                        <section id="adr-004" className="bg-white rounded-3xl border border-zinc-200/90 shadow-sm p-6 sm:p-10 space-y-6">
-                            <div className="flex items-center gap-2 text-xs font-mono text-zinc-500 pb-2 border-b border-zinc-100">
-                                <Cpu className="w-4 h-4 text-zinc-900" />
-                                <span className="font-bold text-zinc-950">ADR-004</span> • RUST SCRAPER, FIRECRAWL &amp; TF-IDF SEARCH
-                            </div>
-                            <h2 className="font-editorial text-3xl sm:text-4xl font-normal text-zinc-950 tracking-tight">
-                                Rust Axum Crawler, Firecrawl Fallback &amp; TF-IDF Search
-                            </h2>
-                            <p className="text-sm text-zinc-600 leading-relaxed font-sans">
-                                Flowmeet uses a two-tier scraping pipeline paired with local TF-IDF document retrieval for buyer inquiries:
-                            </p>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans">
-                                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
-                                    <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
-                                        <span className="font-mono font-bold text-zinc-900">In-House Rust Crawler (:8081)</span>
-                                        <span className="font-mono text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">~19MB RAM • ~500ms</span>
-                                    </div>
-                                    <p className="text-zinc-600">
-                                        Built on Axum and reqwest with SSRF validation, exact regex word boundaries, and streaming HTML to Markdown conversion. Handles 90%+ of standard web homepages with zero headless browser overhead.
-                                    </p>
-                                </div>
-
-                                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
-                                    <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
-                                        <span className="font-mono font-bold text-zinc-900">Firecrawl v1 API Fallback</span>
-                                        <span className="font-mono text-[10px] text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">Adversarial Fallback</span>
-                                    </div>
-                                    <p className="text-zinc-600">
-                                        When a domain renders strictly via client-side JavaScript or blocks plain HTTP fetchers, Flowmeet falls back to Firecrawl&apos;s headless browser API. Results are cached in-memory for 24 hours to prevent credit waste.
-                                    </p>
-                                </div>
-                            </div>
-                        </section>
-
-                        {/* ADR 005: Multi-CRM & Waterfall Stack (Clay, HubSpot, GA4) */}
-                        <section id="adr-005" className="bg-white rounded-3xl border border-zinc-200/90 shadow-sm p-6 sm:p-10 space-y-6">
-                            <div className="flex items-center gap-2 text-xs font-mono text-zinc-500 pb-2 border-b border-zinc-100">
-                                <Sparkles className="w-4 h-4 text-zinc-900" />
-                                <span className="font-bold text-zinc-950">ADR-005</span> • CLAY, HUBSPOT &amp; GA4 ENGINE
-                            </div>
-                            <h2 className="font-editorial text-3xl sm:text-4xl font-normal text-zinc-950 tracking-tight">
-                                Clay Waterfall Enrichment &amp; Free CRM Orchestration
-                            </h2>
-                            <p className="text-sm text-zinc-600 leading-relaxed font-sans">
-                                Flowmeet operates as a revenue orchestration nexus, connecting top-of-funnel inbound capture to enterprise CRMs, waterfall data providers, and marketing measurement pipelines:
-                            </p>
-
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-sans">
-                                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
-                                    <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
-                                        <span className="font-mono font-bold text-zinc-900">Clay.com Waterfall</span>
-                                        <span className="font-mono text-[10px] text-indigo-700 font-bold bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">POST /api/integrations/clay</span>
-                                    </div>
-                                    <p className="text-zinc-600">
-                                        Outbound dispatch to Clay table webhooks when high-value accounts arrive, and inbound webhook receiving enriched signals (revenue, funding stage, LinkedIn, headcount) to update Supabase and CRM records.
-                                    </p>
-                                </div>
-
-                                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
-                                    <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
-                                        <span className="font-mono font-bold text-zinc-900">HubSpot Free CRM API</span>
-                                        <span className="font-mono text-[10px] text-orange-700 font-bold bg-orange-50 px-2 py-0.5 rounded border border-orange-200">REST v3</span>
-                                    </div>
-                                    <p className="text-zinc-600">
-                                        Auto-creates or updates contacts via <code className="font-mono text-zinc-800">/crm/v3/objects/contacts</code> and creates inbound Deals at <code className="font-mono text-zinc-800">appointmentscheduled</code> stage with zero monthly software cost.
-                                    </p>
-                                </div>
-
-                                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
-                                    <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
-                                        <span className="font-mono font-bold text-zinc-900">GA4 Server Measurement</span>
-                                        <span className="font-mono text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">AdBlock Immune</span>
-                                    </div>
-                                    <p className="text-zinc-600">
-                                        Fires server-to-server conversion events (<code className="font-mono text-zinc-800">book_meeting</code> with estimated ARR value) directly to Google Analytics 4, bypassing client-side ad-blockers and privacy shields.
-                                    </p>
-                                </div>
-                            </div>
-                        </section>
-
-                        {/* ADR 006: n8n Polyglot Revenue & Technical Triage Orchestrator */}
-                        <section id="adr-006" className="bg-white rounded-3xl border border-zinc-200/90 shadow-sm p-6 sm:p-10 space-y-6">
-                            <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-zinc-500 pb-2 border-b border-zinc-100">
-                                <div className="flex items-center gap-2">
-                                    <GitBranch className="w-4 h-4 text-zinc-900" />
-                                    <span className="font-bold text-zinc-950">ADR-006</span> • 12-NODE n8n POLYGLOT ORCHESTRATION (4 STAGE GROUPS)
-                                </div>
-                                <a
-                                    href="/workflows/polyglot-revenue-orchestrator.json"
-                                    download="polyglot-revenue-orchestrator.json"
-                                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-zinc-950 text-[#c8f944] font-mono text-[11px] font-bold hover:bg-zinc-800 transition-all"
-                                >
-                                    <span>Download 12-Node Workflow (.json)</span>
-                                    <ExternalLink className="w-3 h-3" />
-                                </a>
-                            </div>
-                            <h2 className="font-editorial text-3xl sm:text-4xl font-normal text-zinc-950 tracking-tight">
-                                12-Node Parallel Polyglot Fan-Out, 50% RAG Circuit Breaker &amp; Safe-Mode Resend Dispatch
-                            </h2>
-                            <p className="text-sm text-zinc-600 leading-relaxed font-sans">
-                                Rather than relying on slow, ungrounded LLM chains, Flowmeet&apos;s production 12-node n8n workflow (<code className="text-xs font-mono bg-zinc-100 px-1.5 py-0.5 rounded text-zinc-900">n8n/polyglot-revenue-orchestrator.json</code>) is organised into <strong>4 logical stage groups</strong> and <strong>2 Resend dispatch branches</strong>. It executes deterministic microservices in parallel, logs audit state to Supabase, enforces an ARR + 50% RAG confidence circuit breaker, and protects demonstration domains with a Safe-Mode guard:
-                            </p>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans">
-                                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
-                                    <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
-                                        <span className="font-mono font-bold text-zinc-900">1. Parallel Fan-Out (Nodes 1, 2a, 2b)</span>
-                                        <span className="font-mono text-[10px] text-orange-700 font-bold bg-orange-50 px-2 py-0.5 rounded border border-orange-200">Rust + Python</span>
-                                    </div>
-                                    <p className="text-zinc-600">
-                                        Webhook trigger fans out concurrently to <code className="font-mono text-zinc-800">/api/scrape</code> (Rust Axum DOM-to-Markdown + tech stack) and <code className="font-mono text-zinc-800">/api/ai-brain</code> (Python FastAPI semantic vector RAG).
-                                    </p>
-                                </div>
-
-                                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
-                                    <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
-                                        <span className="font-mono font-bold text-zinc-900">2. 22µs Territory Lock &amp; Audit (Nodes 3–6)</span>
-                                        <span className="font-mono text-[10px] text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-200">Go 1.22 + Supabase</span>
-                                    </div>
-                                    <p className="text-zinc-600">
-                                        Rust firmographics pipe into <code className="font-mono text-zinc-800">/api/route-lead</code> (Go goroutines compute ICP score, deal ARR tier, and Cal.com slot), merge with RAG citations, and persist to Supabase via <code className="font-mono text-zinc-800">/api/ingest</code>.
-                                    </p>
-                                </div>
-
-                                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
-                                    <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
-                                        <span className="font-mono font-bold text-zinc-900">3. Circuit Breaker (Node 7)</span>
-                                        <span className="font-mono text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">$65k ARR / 50% RAG</span>
-                                    </div>
-                                    <p className="text-zinc-600">
-                                        If <code className="font-mono text-zinc-800">Estimated ARR &gt;= $65,000</code> OR <code className="font-mono text-zinc-800">RAG Confidence &lt; 50%</code>, the workflow halts autonomous outreach and routes to the Founder HITL escalation branch (<code className="font-mono text-zinc-800">8a → 9a</code>).
-                                    </p>
-                                </div>
-
-                                <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-2">
-                                    <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
-                                        <span className="font-mono font-bold text-zinc-900">4. Resend Branches &amp; Safe-Mode (Nodes 8a–9b)</span>
-                                        <span className="font-mono text-[10px] text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded border border-purple-200">ACCEPTED_BY_RESEND + Webhooks</span>
-                                    </div>
-                                    <p className="text-zinc-600">
-                                        Requests passing guardrails enter the autonomous Resend branch (<code className="font-mono text-zinc-800">8b → 9b</code>). Showcase domains (<code className="font-mono text-zinc-800">stripe.com</code>, <code className="font-mono text-zinc-800">linear.app</code>) are redirected by a Safe-Mode guard to protect third-party addresses, returning <code className="font-mono text-zinc-800">ACCEPTED_BY_RESEND</code> upon API acceptance while subsequent delivery events are tracked via <code className="font-mono text-zinc-800">/api/webhooks/resend</code>.
-                                    </p>
-                                </div>
-                            </div>
-                        </section>
-
-                        {/* Interactive Live n8n Polyglot Orchestrator Simulator */}
-                        <section id="n8n-tester" className="bg-zinc-950 text-white rounded-2xl border border-zinc-800 shadow-xl p-6 sm:p-10 space-y-6">
-                            <div className="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-zinc-800">
-                                <div className="flex items-center gap-2">
-                                    <Layers className="w-5 h-5 text-[#c8f944]" />
-                                    <h3 className="font-mono text-sm font-bold text-white uppercase tracking-wider">
-                                        LIVE 12-NODE n8n POLYGLOT ORCHESTRATOR &amp; CIRCUIT BREAKER TESTER
-                                    </h3>
-                                </div>
-                                <span className="px-2 py-0.5 rounded-md bg-zinc-800 text-[10px] font-mono text-[#c8f944] border border-zinc-700">
-                                    POST /api/n8n-orchestrate
-                                </span>
-                            </div>
-
-                            <p className="text-xs text-zinc-400 font-sans">
-                                Execute the 12-node n8n orchestration graph (4 stage groups, 50% RAG threshold, and 2 Resend dispatch branches) live across Rust (<code className="text-zinc-200">:8081</code>), Go (<code className="text-zinc-200">:8082</code>), Python RAG (<code className="text-zinc-200">:8083</code>), Supabase, and Resend:
-                            </p>
-
-                            <div className="flex flex-wrap items-center gap-3">
-                                <span className="text-xs font-mono text-zinc-400">Select Orchestration Scenario:</span>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setN8nPreset("enterprise_hitl");
-                                        setN8nResult(null);
-                                    }}
-                                    className={`px-3 py-1.5 rounded-xl text-xs font-mono border transition-all cursor-pointer ${
-                                        n8nPreset === "enterprise_hitl"
-                                            ? "bg-[#c8f944] text-zinc-950 font-bold border-[#c8f944]"
-                                            : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
-                                    }`}
-                                >
-                                    STRIPE ($65K VIP → HITL CIRCUIT BREAKER)
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setN8nPreset("commercial_auto");
-                                        setN8nResult(null);
-                                    }}
-                                    className={`px-3 py-1.5 rounded-xl text-xs font-mono border transition-all cursor-pointer ${
-                                        n8nPreset === "commercial_auto"
-                                            ? "bg-[#c8f944] text-zinc-950 font-bold border-[#c8f944]"
-                                            : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
-                                    }`}
-                                >
-                                    LINEAR ($24K COMMERCIAL → ZERO-TOUCH AUTO)
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setN8nPreset("low_rag_hitl");
-                                        setN8nResult(null);
-                                    }}
-                                    className={`px-3 py-1.5 rounded-xl text-xs font-mono border transition-all cursor-pointer ${
-                                        n8nPreset === "low_rag_hitl"
-                                            ? "bg-[#c8f944] text-zinc-950 font-bold border-[#c8f944]"
-                                            : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
-                                    }`}
-                                >
-                                    LOW RAG CONFIDENCE (19.4% → HALLUCINATION BREAKER)
-                                </button>
-                            </div>
-
-                            <div className="flex flex-wrap items-center gap-3">
-                                <button
-                                    type="button"
-                                    onClick={handleTestN8nOrchestrator}
-                                    disabled={n8nLoading}
-                                    className="w-full sm:w-auto px-5 py-2.5 rounded-lg bg-[#c8f944] hover:bg-[#b5e635] text-zinc-950 font-bold text-xs font-mono flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
-                                >
-                                    {n8nLoading ? (
-                                        <>
-                                            <RefreshCw className="w-4 h-4 animate-spin text-zinc-950" />
-                                            <span>Running 12-Node Parallel Rust + Python + Go + Resend Graph...</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <span>Execute 12-Node Polyglot Workflow</span>
-                                            <ArrowRight className="w-4 h-4 text-zinc-950" />
-                                        </>
-                                    )}
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        handleCopy(
-                                            `curl -s -X POST https://flowmeet.aetherhost.com.ng/api/n8n-orchestrate -H "Content-Type: application/json" -d '{"name":"Alex Rivera","email":"vp_architecture@stripe.com","company":"Stripe","role":"VP Engineering","employees":3500,"query":"How do I configure SAML 2.0 single sign-on for Okta?"}'`,
-                                            "n8n-curl"
-                                        )
-                                    }
-                                    className="px-4 py-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-700 text-xs font-mono flex items-center gap-2 transition-all cursor-pointer"
-                                >
-                                    {copiedIndex === "n8n-curl" ? (
-                                        <>
-                                            <Check className="w-3.5 h-3.5 text-[#c8f944]" />
-                                            <span className="text-[#c8f944]">Copied cURL!</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Copy className="w-3.5 h-3.5" />
-                                            <span>Copy cURL Test Command</span>
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-
-                            {n8nResult && (
-                                <div className="mt-4 space-y-4">
-                                    {/* Node Execution Trace */}
-                                    <div className="rounded-xl bg-zinc-900 p-4 border border-zinc-800 font-mono text-xs space-y-2.5">
-                                        <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-zinc-800 text-[10px] text-zinc-400">
-                                            <span className="text-[#c8f944] font-bold">
-                                                ✓ WORKFLOW TRACE • TOTAL PIPELINE: {n8nResult.total_orchestration_ms}ms
-                                            </span>
-                                            <span>
-                                                MODE: {n8nResult.payload?.circuit_breaker?.execution_mode}
-                                            </span>
-                                        </div>
-                                        {n8nResult.node_execution_trace?.map((node: any) => (
-                                             <div key={node.node_id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 py-1.5 border-b border-zinc-800/60 last:border-0">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="w-2 h-2 rounded-sm bg-emerald-400 shrink-0" />
-                                                    <span className="text-white font-semibold">{node.name}</span>
-                                                </div>
-                                                <span className="text-[11px] text-zinc-400">{node.output_summary}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    {/* Synthesized Draft Output */}
-                                    <div className="rounded-xl bg-zinc-900 p-4 border border-zinc-800 font-mono text-xs">
-                                        <div className="flex items-center justify-between pb-2 mb-2 border-b border-zinc-800 text-[10px] text-zinc-400">
-                                            <span className="text-emerald-400">GROUNDED AI SYNTHESIS (RUST + GO + PYTHON RAG)</span>
-                                            <span>ICP SCORE: {n8nResult.payload?.scoring_and_routing?.final_icp_score}/100</span>
-                                        </div>
-                                        <pre className="text-[11px] text-zinc-200 whitespace-pre-wrap leading-relaxed">
-                                            {n8nResult.payload?.synthesized_outreach_draft}
-                                        </pre>
-                                    </div>
-                                </div>
-                            )}
-                        </section>
-
-                        {/* Interactive Live Salesforce REST API Tester */}
-                        <section id="live-tester" className="bg-zinc-950 text-white rounded-2xl border border-zinc-800 shadow-xl p-6 sm:p-10 space-y-6">
-                            <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
-                                <div className="flex items-center gap-2">
-                                    <Building2 className="w-5 h-5 text-[#c8f944]" />
-                                    <h3 className="font-mono text-sm font-bold text-white uppercase tracking-wider">
-                                        LIVE SALESFORCE REST API TESTER
-                                    </h3>
-                                </div>
-                                <span className="px-2 py-0.5 rounded-md bg-zinc-800 text-[10px] font-mono text-[#c8f944] border border-zinc-700">
-                                    POST /api/salesforce/sync
-                                </span>
-                            </div>
-
-                            <p className="text-xs text-zinc-400 font-sans">
-                                Test how Flowmeet executes real-time Lead-to-Account (L2A) SOQL queries, routes to existing Account Owners, and creates Salesforce Event objects:
-                            </p>
-
-                            {/* Select Company Preset */}
-                            <div className="flex flex-wrap items-center gap-3">
-                                <span className="text-xs font-mono text-zinc-400">Select Prospect Domain:</span>
-                                {(["stripe", "linear", "acme"] as const).map((comp) => (
-                                    <button
-                                        key={comp}
-                                        type="button"
-                                        onClick={() => {
-                                            setSelectedCompany(comp);
-                                            setSfResult(null);
-                                        }}
-                                        className={`px-3 py-1.5 rounded-md text-xs font-mono border transition-all cursor-pointer ${
-                                            selectedCompany === comp
-                                                ? "bg-[#c8f944] text-zinc-950 font-bold border-[#c8f944]"
-                                                : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
-                                        }`}
-                                    >
-                                        {comp.toUpperCase()}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* Trigger Button */}
-                            <button
-                                type="button"
-                                onClick={handleTestSalesforce}
-                                disabled={sfLoading}
-                                className="w-full sm:w-auto px-5 py-2.5 rounded-lg bg-white hover:bg-zinc-200 text-zinc-950 font-bold text-xs font-mono flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
-                            >
-                                {sfLoading ? (
-                                    <>
-                                        <RefreshCw className="w-4 h-4 animate-spin text-zinc-950" />
-                                        <span>Executing Salesforce SOQL &amp; Event Creation...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <span>Execute Salesforce REST Sync</span>
-                                        <ArrowRight className="w-4 h-4 text-zinc-950" />
-                                    </>
-                                )}
-                            </button>
-
-                            {/* Response JSON Output */}
-                            {sfResult && (
-                                <div className="mt-4 rounded-2xl bg-zinc-900 p-4 border border-zinc-800 font-mono text-xs">
-                                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-zinc-800 text-[10px] text-zinc-400">
-                                        <span className="text-emerald-400">✓ 200 OK — SALESFORCE REST RESPONSE</span>
-                                        <span>Execution: {sfResult.salesforce?.leadOrAccount?.latencyMs}ms</span>
-                                    </div>
-                                    <pre className="text-[11px] text-[#c8f944] overflow-x-auto leading-relaxed">
-                                        <code>{JSON.stringify(sfResult, null, 2)}</code>
-                                    </pre>
-                                </div>
-                            )}
-                        </section>
-
-                    </div>
-
+                <div className="p-7 md:p-10 bg-zinc-950 text-white min-h-96" aria-live="polite">
+                    <div className="flex gap-2 items-center text-zinc-400 text-xs uppercase tracking-widest"><Terminal size={15}/> Execution results</div>
+                    {!result && <div className="mt-16"><Workflow size={42} className="text-emerald-400 mb-6"/><h3 className="text-2xl font-medium">Follow the evidence.</h3><p className="text-zinc-400 text-sm mt-4 leading-relaxed max-w-sm">Read a public company homepage, extract keyword signals, evaluate the routing rules, and retrieve a matching documentation entry.</p></div>}
+                    {result && !result.success && <p className="mt-8 rounded-xl border border-red-800 bg-red-950 p-4 text-red-100">{result.error}</p>}
+                    {result?.success && result.payload && <div className="mt-7 space-y-6">
+                        <div className="flex gap-2 items-center text-emerald-400 text-sm"><CheckCircle2 size={17}/> Preview completed · {result.total_orchestration_ms} ms</div>
+                        <div className="grid grid-cols-2 gap-3"><div className="rounded-xl bg-white/5 p-4"><span className="text-zinc-400 text-xs">Qualification score</span><div className="text-3xl mt-2">{result.payload.scoring_and_routing.final_icp_score}<span className="text-zinc-500 text-sm"> / 100</span></div></div><div className="rounded-xl bg-white/5 p-4"><span className="text-zinc-400 text-xs">Execution path</span><div className="text-xl mt-3">{result.orchestrator === "n8n" ? "n8n workflow" : "Direct"}</div></div></div>
+                        <div className="space-y-3">{result.node_execution_trace?.map(step=><div key={step.name} className="flex justify-between border-b border-white/10 pb-3 text-sm"><span>{step.name}</span><span className="text-emerald-400">{step.duration_ms} ms</span></div>)}</div>
+                        <p className="text-sm text-zinc-300">Next queue: <strong className="text-white">{result.payload.scoring_and_routing.qualification_tier}</strong><br/>Representative: {result.payload.scoring_and_routing.assigned_member.name}{result.payload.scoring_and_routing.sample_roster ? " (sample roster)" : ""}</p>
+                        <p className="text-sm text-zinc-300">{result.payload.circuit_breaker.requires_hitl_approval ? result.payload.circuit_breaker.reasons.join(" · ") : "No review rule triggered. This preview takes no action."}</p>
+                        <details className="text-sm"><summary className="cursor-pointer text-emerald-400">Read the documentation match</summary><p className="whitespace-pre-wrap mt-3 text-zinc-300 leading-relaxed">{result.payload.rag_deflection.direct_answer}</p></details>
+                        {result.n8n_execution_id && <p className="text-xs text-zinc-400">n8n execution: {result.n8n_execution_id}</p>}
+                        <details className="text-sm"><summary className="cursor-pointer text-zinc-400">Inspect full response</summary><pre className="text-xs overflow-auto max-h-80 mt-4 whitespace-pre-wrap break-all">{JSON.stringify(result,null,2)}</pre></details>
+                    </div>}
                 </div>
-
-            </main>
-
-            <Footer />
+            </section>
+            <section className="mt-14 grid md:grid-cols-2 gap-10 text-sm leading-relaxed">
+                <div id="routing"><h2 className="text-xl font-semibold mb-3">What these results mean</h2><p className="text-zinc-600">Company size and technology signals are keyword-based estimates from the homepage. Routing uses deterministic rules: 85+ is enterprise, 65–84 is commercial, and lower scores go to self-service. The roster still includes sample representatives.</p><p className="mt-4 text-zinc-600">Documentation retrieval uses TF-IDF with keyword boosts. Its score measures relevance, not the probability that an answer is correct. Low matches are marked for human review.</p></div>
+                <div><h2 className="text-xl font-semibold mb-3">What is running</h2><p className="text-zinc-600">Next.js coordinates a Rust crawler, Go router, and Python documentation search. n8n wraps the same preview in an authenticated webhook workflow. Customer-facing delivery, database persistence, and calendar confirmation are separate integrations.</p><div className="flex flex-wrap gap-5 mt-5"><a href="/api/health" className="text-emerald-800 underline">Service health</a><a href="/workflows/polyglot-revenue-orchestrator.json" download className="text-emerald-800 underline">Download n8n workflow</a></div></div>
+            </section>
+            <section className="mt-12 grid md:grid-cols-2 gap-5">{[
+                ["authentication", "Identity and workspaces", "Supabase handles user sign-in and workspace membership. The crawler uses a separate server-only bearer credential. The demonstration never accepts caller-provided role headers as identity."],
+                ["booking", "Calendar handoff", "The booking endpoint returns a configured calendar link. Cal.com owns availability and confirmation. A link is not a booked meeting. Signed calendar webhooks are a separate integration."],
+                ["events", "Integration events", "Calendar and delivery webhook handlers exist separately from this preview. Their credentials, signatures, persistence, retries, and delivery behavior require independent verification."],
+                ["limits", "Demo limits", "The public demonstration accepts a configured domain list and applies process-local rate limits. The crawler bounds response size, redirects, fetch time, input size, and concurrency."],
+                ["self-host", "Self-hosting", "Docker Compose runs the five services. Runtime secrets belong in a private environment file. The README and operations runbook explain deployment, verification, resource budgets, and rollback."],
+                ["connectors", "External connectors", "Source includes calendar, email, CRM, and enrichment connectors. The preview uses none of their write operations. Connector availability is not established by a successful preview."],
+            ].map(([id,title,text])=><article id={id} key={id} className="rounded-2xl border border-zinc-200 bg-white p-6"><h2 className="font-semibold mb-2">{title}</h2><p className="text-sm text-zinc-600 leading-relaxed">{text}</p></article>)}</section>
+            <footer className="mt-16 pt-7 border-t border-zinc-200 text-xs text-zinc-500">Flowmeet · Rust platform engineering in a working product.</footer>
         </div>
-    );
+    </main>;
 }

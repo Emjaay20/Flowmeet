@@ -20,7 +20,7 @@ export default function LoginPage() {
         setError(null)
 
         const cleanEmail = email.trim().toLowerCase()
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
             email: cleanEmail,
             password,
         })
@@ -29,6 +29,12 @@ export default function LoginPage() {
             setError(error.message)
             setLoading(false)
         } else {
+            const setup = await fetch('/api/onboarding', { method: 'POST', headers: { Authorization: `Bearer ${data.session.access_token}` } }).catch(() => null)
+            if (!setup?.ok) {
+                setError('Signed in, but workspace setup could not finish. Please try signing in again.')
+                setLoading(false)
+                return
+            }
             router.refresh()
             window.location.href = '/dashboard'
         }

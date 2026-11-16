@@ -15,16 +15,20 @@ spec:
     - Ingress
     - Egress
   ingress:
-    # Allow inbound API and Prometheus traffic on 8081
+    # Only explicitly labelled gateway/monitoring namespaces may connect.
     - from:
-        - namespaceSelector: {}
+        - namespaceSelector:
+            matchLabels:
+              {{- toYaml .Values.networkPolicy.ingressNamespaceLabels | nindent 14 }}
       ports:
         - protocol: TCP
           port: 8081
   egress:
     # Allow CoreDNS
     - to:
-        - namespaceSelector: {}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
       ports:
         - protocol: UDP
           port: 53
@@ -35,8 +39,20 @@ spec:
         - ipBlock:
             cidr: 0.0.0.0/0
             except:
-              - 169.254.169.254/32
+              - 0.0.0.0/8
+              - 10.0.0.0/8
+              - 100.64.0.0/10
               - 127.0.0.0/8
+              - 169.254.0.0/16
+              - 172.16.0.0/12
+              - 192.0.0.0/24
+              - 192.0.2.0/24
+              - 192.168.0.0/16
+              - 198.18.0.0/15
+              - 198.51.100.0/24
+              - 203.0.113.0/24
+              - 224.0.0.0/4
+              - 240.0.0.0/4
       ports:
         - protocol: TCP
           port: 443

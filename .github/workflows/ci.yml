@@ -44,6 +44,9 @@ jobs:
       - name: Run Workspace Unit & Integration Tests
         run: cargo test --workspace --verbose
 
+      - name: Verify MCP protocol
+        run: python3 ../scripts/test_mcp.py
+
       - name: Run Platform Security Policy Linter
         run: cargo run -p flowmeet-agent-tools -- lint-policies
 
@@ -68,6 +71,14 @@ jobs:
 
       - name: Install PyYAML
         run: pip install pyyaml
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4.3.0
+
+      - name: Render and lint chart
+        run: |
+          helm lint deploy/helm/flowmeet
+          helm template verify deploy/helm/flowmeet > /tmp/flowmeet-rendered.yaml
 
       - name: Validate Kubernetes & Flux YAML manifests
         run: |
@@ -131,7 +142,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-          cache-dependency-path: concierge/go.sum
+          cache: false
 
       - name: Run Go Unit Tests
         run: go test -v -race ./...
@@ -150,11 +161,34 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: Install Node Dependencies
         run: npm ci
 
+      - name: Lead capture identity and content checks
+        run: node --experimental-strip-types --test scripts/lead-capture.test.mjs
+
       - name: Typecheck TypeScript
         run: npx tsc --noEmit
+
+      - name: Production build without runtime credentials
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: build-only-public-placeholder
+          SUPABASE_SERVICE_KEY: build-only-placeholder
+        run: npm run build
+
+  docs-retrieval:
+    name: Documentation retrieval
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r ai-brain/requirements.txt
+      - run: python -m unittest discover -s ai-brain -p 'test_*.py'
+      - name: Check downloadable workflow matches source
+        run: cmp n8n/polyglot-revenue-orchestrator.json public/workflows/polyglot-revenue-orchestrator.json
