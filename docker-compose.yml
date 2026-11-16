@@ -28,7 +28,7 @@ services:
     labels:
       traefik.enable: "true"
       traefik.docker.network: aetherhost-net
-      traefik.http.routers.flowmeet-platform-ng.rule: Host(`flowmeet.aetherhost.com.ng`)
+      traefik.http.routers.flowmeet-platform-ng.rule: Host(`flowmeet.aetherhost.app`) || Host(`flowmeet.aetherhost.com.ng`)
       traefik.http.routers.flowmeet-platform-ng.priority: "100"
       traefik.http.routers.flowmeet-platform-ng.entrypoints: websecure
       traefik.http.routers.flowmeet-platform-ng.tls.certresolver: letsencrypt

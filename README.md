@@ -4,10 +4,10 @@ A self-hosted B2B lead research and routing prototype, with a reusable Rust perm
 
 ## Try it
 
-- Application: https://flowmeet.aetherhost.com.ng
-- Measured preview: https://flowmeet.aetherhost.com.ng/docs
-- Getting started: https://flowmeet.aetherhost.com.ng/guide
-- Dependency health: https://flowmeet.aetherhost.com.ng/api/health
+- Application: https://flowmeet.aetherhost.app
+- Measured preview: https://flowmeet.aetherhost.app/docs
+- Getting started: https://flowmeet.aetherhost.app/guide
+- Dependency health: https://flowmeet.aetherhost.app/api/health
 
 The preview reads an allowed company homepage, extracts keyword signals, evaluates Go routing rules, and retrieves a Python documentation entry. Choose a direct run or an authenticated n8n workflow. Both are read-only: **no emails, database writes, or calendar reservations**.
 

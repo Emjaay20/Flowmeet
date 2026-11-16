@@ -1,6 +1,6 @@
 # Using FlowMeet
 
-The hosted getting-started guide is available at https://flowmeet.aetherhost.com.ng/guide.
+The hosted getting-started guide is available at https://flowmeet.aetherhost.app/guide.
 
 ## Who it is for
 
